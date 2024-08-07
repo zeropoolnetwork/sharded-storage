@@ -1,0 +1,43 @@
+# Rust specific ignores
+/target/
+**/*.rs.bk
+
+# Ignore Cargo.lock in subdirectories, but not in the root
+/*/Cargo.lock
+
+# Keep Cargo.lock in the root
+!/Cargo.lock
+
+# IntelliJ IDEA specific ignores
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio Code specific ignores
+.vscode/
+*.code-workspace
+
+# General ignores
+*.log
+*.tmp
+.DS_Store
+
+# Backup files
+*~
+*.bak
+
+# Environment files
+.env
+.env.local
+
+# Build output
+/build/
+/dist/
+
+# Dependency directories
+/node_modules/
+/vendor/
+
+# Note: We're tracking Cargo.lock in the root for workspace consistency,
+# but ignoring it in subdirectories. Adjust if needed for your specific setup.
