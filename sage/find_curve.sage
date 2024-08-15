@@ -36,7 +36,7 @@ def check_parameters(A):
     if (A2 - 4).is_square():
         return False
     
-    if not (-A-2).is_square():
+    if not (A+2).is_square():
         return False
 
     return True
