@@ -3,7 +3,19 @@ import sys
 
 p = 2^31-1
 q = p^8
-Fp8.<x> = GF(q)
+
+# x^2 = -1
+# y^2 = x+2
+# z^2 = y
+#
+# z^4 = y^2 = x+2
+# (z^4-2)^2 = z^8 - 4z^4 + 4 = x^2 = -1
+# z^8 - 4z^4 + 5 = 0 
+
+Fp = GF(p)
+R.<x> = Fp[]
+Fp8.<x> = GF(q, modulus=x^8-4*x^4+5)
+
 
 
 def check_num_points(num_points):

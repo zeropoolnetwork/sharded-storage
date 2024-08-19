@@ -3,7 +3,30 @@ import hashlib
 
 p = 2^31-1
 q = p^8
-Fp8.<z> = GF(q)
+Fp = GF(p)
+R.<x> = Fp[]
+Fp8.<x> = GF(q, modulus=x^8-4*x^4+5)
+
+
+def to_shifed_poly(l, o):
+    return sum([e * (x+o)^i for (i, e) in enumerate(l)])
+
+def poly_to_tower_f2(poly):
+    return (poly[0], poly[1])
+
+def poly_to_tower_f4(poly):
+    l = list(poly)
+
+    even = to_shifed_poly(l[0::2], 2)
+    odd = to_shifed_poly(l[1::2], 2)
+    return (poly_to_tower_f2(even), poly_to_tower_f2(odd))
+
+def poly_to_tower_f8(poly):
+    l = list(poly)
+    even = to_shifed_poly(l[0::2], 0)
+    odd = to_shifed_poly(l[1::2], 0)
+    return (poly_to_tower_f4(even), poly_to_tower_f4(odd))
+
 
 
 cofactor = 8
@@ -11,12 +34,13 @@ twist_cofactor = 4
 
 safety_bits = 121
 
-A = z + 26867
+A = x + 76823
 
 E = EllipticCurve(Fp8, [0, A, 0, 1, 0])
 
-## non-squere value for creating twist
-B = 1 + z
+## non-square value for creating twist
+B = 4 + x
+assert not B.is_square()
 
 Etwist = EllipticCurve(Fp8, [0, B*A, 0, B, 0])
 
@@ -25,14 +49,14 @@ twist_num_points = 2*(q+1) - num_points
 
 ## find generators
 hash_bytes = hashlib.sha256("m31jubjub".encode()).digest()
-gen_x = sum([int.from_bytes(hash_bytes[i:i+4], "big") * z^i for i in range(0, len(hash_bytes), 4)])
+gen_x = sum([int.from_bytes(hash_bytes[i:i+4], "big") * x^(i//4) for i in range(0, len(hash_bytes), 4)])
+
 G=None
 G8=None
 while True:
     while not (gen_x^3+A*gen_x^2+gen_x).is_square():
         gen_x += 1
     gen_y = (gen_x^3+A*gen_x^2+gen_x).sqrt()
-    
     G = E(gen_x, gen_y)
     G8 = cofactor*G
     if G*(num_points/2)!=E(0) and G*8 != E(0):
@@ -108,8 +132,18 @@ a_ = A+2
 d_ = A-2
 d = d_/a_
 
+A_tower = poly_to_tower_f8(A)
+
+G_tower = (poly_to_tower_f8(G[0]), poly_to_tower_f8(G[1]))
+G8_tower = (poly_to_tower_f8(G8[0]), poly_to_tower_f8(G8[1]))
+
 ed_g = (G[0]*a_.sqrt()/G[1], (G[0]-1)/(G[0]+1))
+ed_g_tower = (poly_to_tower_f8(G[0]), poly_to_tower_f8(G[1]))
 ed_g8 = (G8[0]*a_.sqrt()/G8[1], (G8[0]-1)/(G8[0]+1))
+ed_g8_tower = (poly_to_tower_f8(G8[0]), poly_to_tower_f8(G8[1]))
+
+d_tower = poly_to_tower_f8(d)
+
 
 print("All checks passed completely")
 print(f"""
@@ -119,23 +153,23 @@ F_p^8 irreducible polynomial: {Fp8.modulus()}
 
 Montgomery form of curve y^2 = x^3 + A x^2 + x, where
 
-A = {A}
+A = {A} = {A_tower}
 
 num_points = {num_points}
 
 subgroup_order = {num_points // cofactor}
 
-G = {G}
+G = {G} = {G_tower}
 
-G8 = {G8}
+G8 = {G8} = {G8_tower}
 
 
 
-Edwards form of curve -x^2 + y^2 = 1 + d x^2 y^2, where
+Edwards form of curve x^2 + y^2 = 1 + d x^2 y^2, where
 
-d = {d}
+d = {d} = {d_tower}
 
-ED_G = {ed_g}
+ED_G = {ed_g} = {ed_g_tower}
 
-ED_G8 = {ed_g8}
+ED_G8 = {ed_g8} = {ed_g8_tower}
 """)
