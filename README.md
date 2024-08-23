@@ -68,6 +68,73 @@ where $d = [(1530180101, 1286903024), (823193794, 1929909262), (1865204271, 2066
 - ED_G8 = $([(1279048008, 1484784720), (586032070, 1548213212), (2250614, 1782435982), (1582651553, 1683330946)],$
 $[(1501552815, 1089547304), (1572871942, 1429284693), (1149181451, 1293690843), (2134715099, 1973006813)])$
 
+## 🚀 Usage
+
+### EdDSA Signature Scheme
+
+This project implements the EdDSA (Edwards-curve Digital Signature Algorithm) signature scheme. Here's how to use the sign and verify functions:
+
+```rust
+use m31jubjub::{
+    m31::{FqBase, Fs, M31JubJubSigParams},
+    eddsa::SigParams,
+};
+use rand::{thread_rng, Rng};
+
+fn main() {
+    // Create signature parameters
+    let sig_params = M31JubJubSigParams::default();
+    
+    // Generate a private key
+    let private_key: Fs = thread_rng().gen();
+
+    // Derive the public key
+    let public_key = sig_params.public_key(private_key);
+
+    // Generate a random message
+    let message: Vec<FqBase> = (0..10).map(|_| thread_rng().gen()).collect();
+
+    // Sign the message
+    let signature = sig_params.sign(&message, private_key);
+
+    // Verify the signature
+    let is_valid = sig_params.verify(&message, signature, public_key);
+
+    assert!(is_valid);
+}
+```
+
+#### Key Components:
+
+1. **Signature Parameters**: Use `M31JubJubSigParams::default()` to create default signature parameters.
+
+2. **Key Generation**:
+   - Private Key: Generate using a random number generator.
+   - Public Key: Derive from the private key using `sig_params.public_key(private_key)`.
+
+3. **Message**: Create a vector of `FqBase` elements. In this example, we're using random data.
+
+4. **Signing**: Use `sig_params.sign(&message, private_key)` to create a signature.
+
+5. **Verification**: Use `sig_params.verify(&message, signature, public_key)` to verify the signature.
+
+
+## 🛠️ Development
+
+To run tests:
+
+```bash
+cargo test
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under MIT. Please see the LICENSE file for more details.
+
 ## 📚 References
 
 This project is based on the following works:
