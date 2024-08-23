@@ -21,3 +21,7 @@ Cargo.lock
 #.idea/
 
 *.sage.py
+
+# Added by cargo
+
+/target

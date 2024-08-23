@@ -33,9 +33,10 @@ $z^8 - 4z^4 + 5 = 0$
 These relationships lead to the construction of the irreducible polynomial $x^8 -4 x^4 + 5$.
 
 The field extensions are constructed as follows:
-- $\mathbb{F}_{p^2} = \mathbb{F}_p[x] / (x^2 + 1)$
-- $\mathbb{F}_{p^4} = \mathbb{F}_{p^2}[y] / (y^2 - (x+2))$
-- $\mathbb{F}_{p^8} = \mathbb{F}_{p^4}[z] / (z^2 - y)$
+
+- $\mathbb{F}_{p^2} = \mathbb{F} _p[x] / (x^2 + 1)$
+- $\mathbb{F}_{p^4} = \mathbb{F} _{p^2}[y] / (y^2 - (x+2))$
+- $\mathbb{F}_{p^8} = \mathbb{F} _{p^4}[z] / (z^2 - y)$
 
 This tower of extensions allows for efficient field arithmetic and is crucial for the implementation of the m31jubjub curve.
 

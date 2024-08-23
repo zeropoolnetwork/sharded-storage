@@ -3,6 +3,15 @@ import hashlib
 
 p = 2^31-1
 q = p^8
+
+# x^2 = -1
+# y^2 = x+2
+# z^2 = y
+#
+# z^4 = y^2 = x+2
+# (z^4-2)^2 = z^8 - 4z^4 + 4 = x^2 = -1
+# z^8 - 4z^4 + 5 = 0 
+
 Fp = GF(p)
 R.<x> = Fp[]
 Fp8.<x> = GF(q, modulus=x^8-4*x^4+5)
@@ -12,21 +21,33 @@ def to_shifed_poly(l, o):
     return sum([e * (x+o)^i for (i, e) in enumerate(l)])
 
 def poly_to_tower_f2(poly):
+    l = list(poly)
+    l = l + [Fp(0)] * (2 - len(l))
     return (poly[0], poly[1])
 
 def poly_to_tower_f4(poly):
     l = list(poly)
-
+    l = l + [Fp(0)] * (4 - len(l))
     even = to_shifed_poly(l[0::2], 2)
     odd = to_shifed_poly(l[1::2], 2)
     return (poly_to_tower_f2(even), poly_to_tower_f2(odd))
 
 def poly_to_tower_f8(poly):
     l = list(poly)
+    l = l + [Fp(0)]*(8-len(l))
     even = to_shifed_poly(l[0::2], 0)
     odd = to_shifed_poly(l[1::2], 0)
     return (poly_to_tower_f4(even), poly_to_tower_f4(odd))
 
+
+def poly_to_quadratic_complex(poly):
+    l = list(poly)
+    l = l + [Fp(0)]*(8-len(l))
+    res = []
+    for i in range(0,4):
+        # z^4 = 2 + x
+        res.push((l[i] + 2*l[i+4], l[i+4]))
+    return res
 
 
 cofactor = 8
@@ -131,6 +152,9 @@ assert abs(Dtwist).log(2) > 100, "Error: safecurve twist disc"
 a_ = A+2
 d_ = A-2
 d = d_/a_
+
+assert d.is_square(), "d is not square"
+r = d.sqrt()
 
 A_tower = poly_to_tower_f8(A)
 
