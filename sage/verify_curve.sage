@@ -46,7 +46,7 @@ def poly_to_quadratic_complex(poly):
     res = []
     for i in range(0,4):
         # z^4 = 2 + x
-        res.push((l[i] + 2*l[i+4], l[i+4]))
+        res.append((l[i] + 2*l[i+4], l[i+4]))
     return res
 
 
@@ -152,22 +152,29 @@ assert abs(Dtwist).log(2) > 100, "Error: safecurve twist disc"
 a_ = A+2
 d_ = A-2
 d = d_/a_
+a_sqrt = a_.sqrt()
 
-assert d.is_square(), "d is not square"
-r = d.sqrt()
+
 
 A_tower = poly_to_tower_f8(A)
+A_quadratic_complex = poly_to_quadratic_complex(A)
 
 G_tower = (poly_to_tower_f8(G[0]), poly_to_tower_f8(G[1]))
 G8_tower = (poly_to_tower_f8(G8[0]), poly_to_tower_f8(G8[1]))
 
-ed_g = (G[0]*a_.sqrt()/G[1], (G[0]-1)/(G[0]+1))
+G_quadratic_complex = (poly_to_quadratic_complex(G[0]), poly_to_quadratic_complex(G[1]))
+G8_quadratic_complex = (poly_to_quadratic_complex(G8[0]), poly_to_quadratic_complex(G8[1]))
+
+ed_g = (G[0]*a_sqrt/G[1], (G[0]-1)/(G[0]+1))
 ed_g_tower = (poly_to_tower_f8(G[0]), poly_to_tower_f8(G[1]))
-ed_g8 = (G8[0]*a_.sqrt()/G8[1], (G8[0]-1)/(G8[0]+1))
+ed_g_quadratic_complex = (poly_to_quadratic_complex(ed_g[0]), poly_to_quadratic_complex(ed_g[1]))
+
+ed_g8 = (G8[0]*a_sqrt/G8[1], (G8[0]-1)/(G8[0]+1))
 ed_g8_tower = (poly_to_tower_f8(G8[0]), poly_to_tower_f8(G8[1]))
+ed_g8_quadratic_complex = (poly_to_quadratic_complex(ed_g8[0]), poly_to_quadratic_complex(ed_g8[1]))
 
 d_tower = poly_to_tower_f8(d)
-
+d_quadratic_complex = poly_to_quadratic_complex(d)
 
 print("All checks passed completely")
 print(f"""
@@ -177,23 +184,23 @@ F_p^8 irreducible polynomial: {Fp8.modulus()}
 
 Montgomery form of curve y^2 = x^3 + A x^2 + x, where
 
-A = {A} = {A_tower}
+A = {A} = {A_quadratic_complex}
 
 num_points = {num_points}
 
 subgroup_order = {num_points // cofactor}
 
-G = {G} = {G_tower}
+G = {G} = {G_quadratic_complex}
 
-G8 = {G8} = {G8_tower}
+G8 = {G8} = {G8_quadratic_complex}
 
 
 
 Edwards form of curve x^2 + y^2 = 1 + d x^2 y^2, where
 
-d = {d} = {d_tower}
+d = {d} ={d_quadratic_complex}
 
-ED_G = {ed_g} = {ed_g_tower}
+ED_G =  {ed_g} = {ed_g_quadratic_complex}
 
-ED_G8 = {ed_g8} = {ed_g8_tower}
+ED_G8 = {ed_g8} = {ed_g8_quadratic_complex}
 """)
