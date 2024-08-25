@@ -11,3 +11,23 @@ pub struct StorageConfig {
     /// number of sectors
     pub k: usize,
 }
+
+impl StorageConfig {
+    pub fn dev() -> Self {
+        Self {
+            n: 16384,
+            m: 8,
+            q: 32,
+            k: 2097152,
+        }
+    }
+
+    pub fn prod() -> Self {
+        Self {
+            n: 16384,
+            m: 64,
+            q: 512,
+            k: 33554432,
+        }
+    }
+}
