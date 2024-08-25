@@ -1,0 +1,28 @@
+[package]
+name = "shards"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+
+[dependencies]
+p3-circle = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-challenger = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-commit = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-dft = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-field = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-fri = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-matrix = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-maybe-rayon = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-util = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+p3-mersenne-31 = {git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility"}
+rand_core = "0.6.4"
+rand = "0.8.5"
+
+
+tracing = "0.1.37"
+itertools = "0.13.0"
+serde = "1"
+
+[dev-dependencies]
+libc-print = "0.1.22"
