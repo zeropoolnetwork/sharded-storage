@@ -1,25 +1,41 @@
 use alloc::vec;
 use alloc::vec::Vec;
-
-use itertools::{iterate, izip, Itertools};
+use core::iter::repeat;
+use itertools::Itertools;
 use p3_commit::PolynomialSpace;
-use p3_dft::{divide_by_height, Butterfly, DifButterfly, DitButterfly};
 use p3_field::extension::ComplexExtendable;
-use p3_field::{batch_multiplicative_inverse, ExtensionField, Field};
+use p3_field::Field;
 use p3_matrix::dense::RowMajorMatrix;
 use p3_matrix::Matrix;
 use p3_maybe_rayon::prelude::*;
-use p3_util::{log2_ceil_usize, log2_strict_usize, reverse_slice_index_bits};
-use tracing::{debug_span, instrument};
+use p3_util::log2_strict_usize;
+
 
 use p3_circle::{CircleDomain, CircleEvaluations};
 use p3_circle::Point;
-use p3_circle::circle_basis;
-use p3_circle::{cfft_permute_index, cfft_permute_slice, CfftPermutable, CfftView};
-
-use p3_matrix::row_index_mapped::{RowIndexMap, RowIndexMappedView};
 
 
+//use libc_print::std_name::{println, eprintln, dbg};
+
+use core::ops::Sub;
+
+
+// Return symmetric monomial basis at given point
+// log_n is corresponding to the size of full basis size, 
+// including both y-symmetric and y-antisymmetric parts
+
+pub fn symmetric_circle_basis<F: Field>(p: Point<F>, log_n: usize) -> Vec<F> {
+    let mut b = vec![F::one()];
+    let mut x = p.x;
+    for _ in 0..(log_n-1) {
+        for i in 0..b.len() {
+            b.push(b[i] * x);
+        }
+        x = x.square().double() - F::one();
+    }
+    assert_eq!(b.len(), 1 << (log_n-1));
+    b
+}
 
 
 pub fn symmetric_cfft_interpolate<F: ComplexExtendable, M: Matrix<F>> (domain: CircleDomain<F>, evals: M) -> RowMajorMatrix<F> {
@@ -45,14 +61,20 @@ pub fn symmetric_cfft_interpolate<F: ComplexExtendable, M: Matrix<F>> (domain: C
 }
 
 pub fn symmetric_cfft_evaluate<F: ComplexExtendable, M: Matrix<F>>(domain: CircleDomain<F>, coeffs: M) -> RowMajorMatrix<F> {
-    assert_eq!(1 << (domain.log_n-1), coeffs.height());
+    let coeffs_height = coeffs.height();
+    let log_coeffs_height = log2_strict_usize(coeffs_height);
+
+    assert!(domain.log_n > log_coeffs_height);
+
+    let symmetric_coeffs_len = coeffs.width() * (1<<domain.log_n);
 
     //TODO: rewrite inefficient matrix conversion and extrapolation
+    //TODO: optimize cfft over partially zeroized data (see examples in Plonky3 cfft implementation)
 
     let symmetric_coeffs = RowMajorMatrix::new(
         coeffs.rows().map(|row| row.collect_vec()).interleave_shortest(
-            core::iter::repeat(vec![F::zero(); coeffs.width()])
-        ).flatten().collect_vec(), coeffs.width());
+            repeat(vec![F::zero(); coeffs.width()])
+        ).flatten().chain(repeat(F::zero())).take(symmetric_coeffs_len).collect_vec(), coeffs.width());
 
     //TODO: use cfft ordering for result instead of natural order
     let evals = CircleEvaluations::evaluate(domain, symmetric_coeffs).to_natural_order();
@@ -65,82 +87,47 @@ pub fn symmetric_cfft_evaluate<F: ComplexExtendable, M: Matrix<F>>(domain: Circl
 }
 
 
-// This function blows up each column of the matrix and resulting rows correspond to the data shards
+// This function blows up each column of the matrix and resulting rows correspond to the data shards in lagrange representation
 // Domain customization is useful for sharding over cluster
 
 pub fn shards_for_domain<F:ComplexExtendable, M:Matrix<F>>(source_domain:CircleDomain<F>, blowup_domain:CircleDomain<F>, source:M) -> RowMajorMatrix<F> {
     assert!(source_domain.size() <= blowup_domain.size());
     let coeffs = symmetric_cfft_interpolate(source_domain, source);
-    let shards = symmetric_cfft_evaluate(blowup_domain, coeffs);
-    shards
+    symmetric_cfft_evaluate(blowup_domain, coeffs)
 }
 
 // The same as `do_shards_for_domain` but for standard domains, useful for sharding interpolation
 
 pub fn shards<F:ComplexExtendable, M:Matrix<F>>(log_blowup:usize, source:M) -> RowMajorMatrix<F> {
     let source_domain = CircleDomain::<F>::standard(log2_strict_usize(source.height())+1);
-    let blowup_domain = CircleDomain::<F>::standard(log_blowup + log2_ceil_usize(source.height()) + 1);
+    let blowup_domain = CircleDomain::<F>::standard(log_blowup + log2_strict_usize(source.height()) + 1);
     shards_for_domain(source_domain, blowup_domain, source)
 }
+
 
 // Assumes that source is evaluated over standard domain
 // Computes the polynomial related to https://ethresear.ch/t/efficient-data-distribution-with-reed-solomon-codes-for-sharded-storage
 // and returns its coefficients representation
-pub fn data_polynomial_coeffs_repr<F:ComplexExtendable, M:Matrix<F>>(source:M) -> RowMajorMatrix<F> {
-    
-    // transpose repr, so rows and cols below are vice versa
-    let a = source;
-
-    // First perform fft over columns of source matrix with m rows and n columns, where both m and n are powers of 2
-    // f(X,Y) = ∑ aᵢⱼ Lᵢ(X) λⱼ(Y)
-    //          ⁱʲ
-    // where X and Y are points over the circle 
-    // i is the row index and j is the column index
-    // Lᵢ(X) is the lagrange polynomial for the i-th row
-    // λⱼ(Y) is the lagrange polynomial for the j-th column
-    //
-    // After the transformation we got
-    // f(X,Y) = ∑ bᵢⱼ Lᵢ(X) μⱼ(Y)
-    //          ⁱʲ
+pub fn data_polynomial_coeffs<F:ComplexExtendable, M:Matrix<F>>(source:M) -> RowMajorMatrix<F> {
+    // f(X,Y) = ∑ cᵢⱼ Mᵢ(X) μⱼ(Y) = ∑ fⱼ(X) μⱼ(Y)
+    //          ⁱʲ                  ʲ     
     // where μⱼ(Y) is element of symmetric monomial basis
     // μₖ(P) = cpow(P.x, k) = ∏ π⁽ʲ⁾(P.x)
     //                      bitⱼ(k) = 1 
     // π(x) = 2 x² −1
+    // and Mᵢ(X) = yⁱ ᵐᵒᵈ ² μᵢ÷₂(X)  is general monomial basis, including both y-symmetric and y-antisymmetric parts
 
-    let b = symmetric_cfft_interpolate(CircleDomain::<F>::standard(log2_ceil_usize(a.height())+1), a); 
-
-    // next do interpolation over rows
-    // f(X,Y) = ∑ bᵢⱼ Lᵢ(X) μⱼ(Y) = ∑ cᵢⱼ Mᵢ(X) μⱼ(Y) = ∑ fⱼ(X) μⱼ(Y)
-    //          ⁱʲ                  ⁱʲ                  ʲ
-    // where Mᵢ(X) = yⁱ ᵐᵒᵈ ² μᵢ÷₂(X)  is general monomial basis, including both y-symmetric and y-antisymmetric parts
     // Taking into account, that cpow(cpow(x, α), β)=cpow(x, αβ), when α is a power of 2, 
     // and cpow(x, α) cpow(x, β) = cpow(x, α+β), when α xor β = 0, we can do the substitution:
     // Y=Xᵐ, then
-    // f(X, Xᵐ) = ∑ cᵢⱼ Mᵢ(X) μⱼ(Xᵐ) = ∑ cᵢⱼ Mᵢ+ₘⱼ(X)
+    // f(X, Xᵐ) = ∑ aᵢⱼ Mᵢ(X) μⱼ(Xᵐ) = ∑ aᵢⱼ Mᵢ+ₘⱼ(X)
     //            ⁱʲ                   ⁱʲ  
     // that means that to build coefficient representation of f(X, Xᵐ) we need to do cfft over cols and concatenate the resulting cols one by one
 
-    
-    // make transpose to make matrix representation the same as in the paper
-    // we need it because only cfft over cols is implemented in Plonky3
-    let b = b.transpose();
 
-    
-    let coeffs = CircleEvaluations::from_natural_order(
-        CircleDomain::<F>::standard(log2_ceil_usize(b.height())), b
-    ).interpolate();
-
-    // concatenate all coeffs into one single-column row-major matrix
-
-    let coeffs = RowMajorMatrix::new(coeffs.transpose().values, 1);
-
-    // // TODO: this part should be moved to FRI commitment computation
-    // CircleEvaluations::evaluate(
-    //     CircleDomain::<F>::standard(log2_ceil_usize(coeffs.height())), 
-    //     coeffs).to_natural_order().to_row_major_matrix()
-
-    coeffs
-    
+    RowMajorMatrix::new(
+        source.to_row_major_matrix().transpose().values, 1
+    )
 }
 
 
@@ -148,66 +135,169 @@ pub fn data_polynomial_coeffs_repr<F:ComplexExtendable, M:Matrix<F>>(source:M) -
 // Y₀ is corresponding to the shard fₛ
 // source and shard should be given in monomial representation
 // output is in lagrange representation
-fn quotient_polynomial_evals<F:ComplexExtendable, M:Matrix<F>>(source:M, shard:M, y_0:Point<F>) -> RowMajorMatrix<F> {
+pub fn quotient_polynomial_evals<F:ComplexExtendable, M:Matrix<F>>(data:M, shard:M, y_0:Point<F>) -> RowMajorMatrix<F> {
 
-    //implemented only for 1-column source matrix
-    assert!(source.width()==1);
+    let data_height = data.height();
+    let shard_height = shard.height();
+    let log_data_height = log2_strict_usize(data_height);
+
+    assert!(data.width()==1);
     assert!(shard.width()==1);
 
-    assert_eq!(source.height()%shard.height(), 0);
-    let m = source.height()/shard.height();
-
-
-    // compute f(X)-fₛ(X)
-
-    // this part could be optimized by memory
-
-    let source_height = source.height();
-
-    let source_values = source.to_row_major_matrix().values;
+    let data_values = data.to_row_major_matrix().values;
     let shard_values = shard.to_row_major_matrix().values;
 
     let f_minus_f_s_coeffs = RowMajorMatrix::new(
-        source_values.iter().zip(shard_values.iter()).map(|(&a, &b)| a-b).chain(source_values.iter().skip(shard_values.len()).cloned()).collect_vec(), 1
+        data_values.iter().zip(shard_values.iter()).map(|(&a, &b)| a-b).chain(data_values.iter().skip(shard_height).cloned()).collect_vec(), 1
     );
 
-    let domain = CircleDomain::<F>::standard(log2_ceil_usize(source_height));
+    let quotient_domain = CircleDomain::<F>::standard(log_data_height+1);
 
-    let f_minus_f_s_evals = CircleEvaluations::evaluate(domain, f_minus_f_s_coeffs).to_natural_order().to_row_major_matrix();
+    let f_minus_f_s_evals = CircleEvaluations::evaluate(quotient_domain, f_minus_f_s_coeffs).to_natural_order().to_row_major_matrix().values;
 
 
-    // This part could be optimized by using properties of Xᵐ
-    let points = domain.points();
-    let v_0_args = points.map(|x| v_0(x, m, y_0)).collect_vec();
+    // TODO: optimize it by using montgomery batch inverse and compute separately nominator and denominator of v₀
+    // TODO: Optimize b*shard_height/2 here using group properties
+    let quotient_evals = f_minus_f_s_evals.iter().zip(quotient_domain.points()).map(|(&a, b)| a/v_0(b, shard_height/2, y_0 ).to_projective_line().unwrap()).collect_vec();
 
-    let v_0_noms = v_0_args.iter().map(|p| p.y).collect_vec();
-    let v_0_denoms = v_0_args.iter().map(|p| p.x+F::one()).collect_vec();
+    RowMajorMatrix::new(quotient_evals, 1)
 
-    let v_0_noms_inv = batch_multiplicative_inverse(&v_0_noms);
-
-    RowMajorMatrix::new(
-        f_minus_f_s_evals.values.iter().zip(v_0_noms_inv.iter().zip(v_0_denoms.iter())).map(
-            |(&a, (&b, &c))| a*b*c
-        ).collect_vec(), 1
-    )
-    
 }
+
 
 //v₀(XᵐY₀⁻¹) for testing purposes only
-fn v_0<F:Field>(x:Point<F>, m:usize, y_0:Point<F>) -> Point<F> {
-    x*m - y_0
+fn v_0<F:Field, G:Field>(x:Point<F>, m:usize, y_0:Point<G>) -> Point<F> 
+    where Point<F>:Sub<Point<G>, Output = Point<F>>
+{
+    x*m-y_0
 }
 
+#[cfg(test)]
 mod tests {
+
+
     use itertools::iproduct;
     use p3_field::extension::BinomialExtensionField;
     use p3_mersenne_31::Mersenne31;
-    use rand::{random, thread_rng};
+    use p3_circle::circle_basis;
+    use rand::{thread_rng, Rng};
 
     use super::*;
 
     type F = Mersenne31;
     type EF = BinomialExtensionField<F, 3>;
+
+    #[test]
+    fn test_opening() {
+        let mut rng = thread_rng();
+        let log2_h = 5;
+        let log_lde_blowup = 1;
+
+        let log2_lde = log2_h+log_lde_blowup;
+        let h = 1<<log2_h;
+
+
+        let coeffs = RowMajorMatrix::<F>::rand(&mut rng, h, 1);
+
+        let domain = CircleDomain::<F>::standard(log2_lde);
+
+        let evals = CircleEvaluations::evaluate(domain, coeffs.clone()).to_natural_order().to_row_major_matrix();
+
+        let x = Point::<F>::from_projective_line(rng.gen());
+
+        let value = coeffs.columnwise_dot_product(&circle_basis(x, log2_h))[0];
+        let value2 = CircleEvaluations::from_natural_order(domain, evals.clone()).evaluate_at_point(x)[0];
+
+        assert_eq!(value, value2);
+
+        let opening = value;
+
+        let evals_minus_opening = evals.values.clone().into_iter().map(|a| a-opening).collect_vec();
+
+        assert_eq!(evals_minus_opening.len(), domain.points().collect_vec().len());
+
+        
+        
+        let quotient_values = evals_minus_opening.clone().into_iter().zip(domain.points()).map(
+            |(a, b)| {
+                let v_0_eval = v_0(b, 1, x);
+                a / v_0_eval.to_projective_line().unwrap()
+            }).collect_vec();
+
+        let quotient = CircleEvaluations::from_natural_order(domain, RowMajorMatrix::new(quotient_values, 1));
+
+
+        let x2 = Point::<EF>::from_projective_line(rng.gen());
+
+        let quotient_at_x2 = quotient.evaluate_at_point(x2)[0];
+        let evals_at_x2 = CircleEvaluations::from_natural_order(domain, evals.clone()).evaluate_at_point(x2)[0];
+        let v_0_eval_at_x2 = v_0(x2, 1, x).to_projective_line().unwrap();
+
+        assert_eq!(quotient_at_x2*v_0_eval_at_x2, evals_at_x2-opening);
+
+    }
+
+    
+    #[test]
+    fn test_sharding() {
+
+        let mut rng = thread_rng();
+
+        let height = 32; // size of shard
+        let width = 8; // number of shards to restore source data
+
+        let num_shards = 32;
+        let log_num_shards = log2_strict_usize(num_shards);
+        let shard_index = 5; // select n-th shard to test numerated from 0
+
+        let log_height = log2_strict_usize(height);
+        let log_width = log2_strict_usize(width);
+        let log_data_height = log_height + log_width;
+
+        let sharding_domain = CircleDomain::<F>::standard(log_num_shards+1);
+
+        let quotient_domain = CircleDomain::<F>::standard(log_data_height+1);
+        
+
+        let source = RowMajorMatrix::<F>::rand(&mut rng, height, width);
+
+
+        let source_transposed = source.clone().transpose();
+
+        
+        
+    
+
+        let y_0 = sharding_domain.points().nth(shard_index).unwrap();
+
+        // +1 because of y-symmetry
+        let shard = RowMajorMatrix::new(
+            source_transposed.columnwise_dot_product(&symmetric_circle_basis(y_0, log_num_shards+1)), 1
+        );
+
+        assert!(shard.height()==height);
+
+        let data_coeffs = data_polynomial_coeffs(source);
+
+        let quotient_evals = quotient_polynomial_evals(data_coeffs.clone(), shard.clone(), y_0);
+
+        let x = Point::<EF>::from_projective_line(rng.gen());
+
+        
+
+        let data_eval_at_x = data_coeffs.columnwise_dot_product(&circle_basis(x, log_data_height))[0];
+
+        let quotient_eval_at_x = CircleEvaluations::from_natural_order(quotient_domain, quotient_evals).evaluate_at_point(x)[0];
+
+        let shard_eval_at_x = shard.columnwise_dot_product(&circle_basis(x, log_height))[0];
+
+        let v_0_eval_at_x = v_0(x, height/2, y_0).to_projective_line().unwrap();
+
+
+
+        assert_eq!(data_eval_at_x-shard_eval_at_x, quotient_eval_at_x*v_0_eval_at_x);
+    }
+
 
     #[test]
     fn test_symmetric_cfft_icfft() {
@@ -220,97 +310,4 @@ mod tests {
         }
     }
 
-    /* 
-    #[test]
-    fn test_cfft_icfft() {
-        for (log_n, width) in iproduct!(2..5, [1, 4, 11]) {
-            let shift = Point::generator(F::CIRCLE_TWO_ADICITY) * random();
-            let domain = CircleDomain::<F>::new(log_n, shift);
-            let trace = RowMajorMatrix::<F>::rand(&mut thread_rng(), 1 << log_n, width);
-            let coeffs = CircleEvaluations::from_natural_order(domain, trace.clone()).interpolate();
-            assert_eq!(
-                CircleEvaluations::evaluate(domain, coeffs.clone())
-                    .to_natural_order()
-                    .to_row_major_matrix(),
-                trace,
-                "icfft(cfft(evals)) is identity",
-            );
-            for (i, pt) in domain.points().enumerate() {
-                assert_eq!(
-                    &*trace.row_slice(i),
-                    coeffs.columnwise_dot_product(&circle_basis(pt, log_n)),
-                    "coeffs can be evaluated with circle_basis",
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn test_extrapolation() {
-        for (log_n, log_blowup) in iproduct!(2..5, [1, 2, 3]) {
-            let evals = CircleEvaluations::<F>::from_natural_order(
-                CircleDomain::standard(log_n),
-                RowMajorMatrix::rand(&mut thread_rng(), 1 << log_n, 11),
-            );
-            let lde = evals
-                .clone()
-                .extrapolate(CircleDomain::standard(log_n + log_blowup));
-
-            let coeffs = evals.interpolate();
-            let lde_coeffs = lde.interpolate();
-
-            for r in 0..coeffs.height() {
-                assert_eq!(&*coeffs.row_slice(r), &*lde_coeffs.row_slice(r));
-            }
-            for r in coeffs.height()..lde_coeffs.height() {
-                assert!(lde_coeffs.row(r).all(|x| x.is_zero()));
-            }
-        }
-    }
-
-    #[test]
-    fn eval_at_point_matches_cfft() {
-        for (log_n, width) in iproduct!(2..5, [1, 4, 11]) {
-            let evals = CircleEvaluations::<F>::from_natural_order(
-                CircleDomain::standard(log_n),
-                RowMajorMatrix::rand(&mut thread_rng(), 1 << log_n, width),
-            );
-
-            let pt = Point::<EF>::from_projective_line(random());
-
-            assert_eq!(
-                evals.clone().evaluate_at_point(pt),
-                evals
-                    .interpolate()
-                    .columnwise_dot_product(&circle_basis(pt, log_n))
-            );
-        }
-    }
-
-    #[test]
-    fn eval_at_point_matches_lde() {
-        for (log_n, width, log_blowup) in iproduct!(2..8, [1, 4, 11], [1, 2]) {
-            let evals = CircleEvaluations::<F>::from_natural_order(
-                CircleDomain::standard(log_n),
-                RowMajorMatrix::rand(&mut thread_rng(), 1 << log_n, width),
-            );
-            let lde = evals
-                .clone()
-                .extrapolate(CircleDomain::standard(log_n + log_blowup));
-            let zeta = Point::<EF>::from_projective_line(random());
-            assert_eq!(evals.evaluate_at_point(zeta), lde.evaluate_at_point(zeta));
-            assert_eq!(
-                evals.evaluate_at_point(zeta),
-                evals
-                    .interpolate()
-                    .columnwise_dot_product(&circle_basis(zeta, log_n))
-            );
-            assert_eq!(
-                lde.evaluate_at_point(zeta),
-                lde.interpolate()
-                    .columnwise_dot_product(&circle_basis(zeta, log_n + log_blowup))
-            );
-        }
-    }
-    */
 }

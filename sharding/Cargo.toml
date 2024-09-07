@@ -23,6 +23,6 @@ rand = "0.8.5"
 tracing = "0.1.37"
 itertools = "0.13.0"
 serde = "1"
+libc-print = "0.1.22"
 
 [dev-dependencies]
-libc-print = "0.1.22"
