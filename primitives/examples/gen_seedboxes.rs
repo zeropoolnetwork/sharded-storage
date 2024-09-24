@@ -23,7 +23,7 @@ fn seed(input: &str) -> [u8; 32] {
 
 
 fn main() {
-    let rng = &mut ChaCha20Rng::from_seed(seed("ZeroPool"));
+    let ref mut rng = ChaCha20Rng::from_seed(seed("ZeroPool"));
 
     type Val = Mersenne31;
 

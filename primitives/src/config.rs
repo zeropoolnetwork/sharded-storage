@@ -12,7 +12,7 @@ use p3_challenger::DuplexChallenger;
 use p3_uni_stark::StarkConfig;
 use p3_circle::CirclePcs;
 use p3_fri::FriConfig;
-
+use lazy_static::lazy_static;
 
 use core::marker::PhantomData;
 
@@ -34,6 +34,18 @@ pub type Poseidon2M31Challenger = DuplexChallenger<Mersenne31, Poseidon2M31Perm,
 pub type Poseidon2M31Pcs = CirclePcs<Mersenne31, Poseidon2M31Mmcs, Poseidon2M31ChallengeMmcs>;
 pub type Poseidon2M31StarkConfig = StarkConfig<Poseidon2M31Pcs, Challenge, Poseidon2M31Challenger>;
 
+pub type Hash = p3_symmetric::Hash<Mersenne31, Mersenne31, 8>;
+
+lazy_static!{
+    pub static ref POSEIDON2_M31_CONFIG: Poseidon2M31Perm = poseidon2_m31_config();
+    pub static ref POSEIDON2_M31_HASH: Poseidon2M31Hash = poseidon2_m31_hash();
+    pub static ref POSEIDON2_M31_COMPRESS: Poseidon2M31Compress = poseidon2_m31_compress();
+    pub static ref POSEIDON2_M31_MMCS: Poseidon2M31Mmcs = poseidon2_m31_mmcs();
+    pub static ref POSEIDON2_M31_CHALLENGE_MMCS: Poseidon2M31ChallengeMmcs = poseidon2_m31_challenge_mmcs();
+}
+
+
+
 pub fn poseidon2_m31_config() -> Poseidon2M31Perm {
     Poseidon2M31Perm::new(
         crate::POSEIDON2_M31_W16_D5_ROUNDS_F,
@@ -46,20 +58,23 @@ pub fn poseidon2_m31_config() -> Poseidon2M31Perm {
     )
 }
 
+
 pub fn poseidon2_m31_hash() -> Poseidon2M31Hash {
-    Poseidon2M31Hash::new(poseidon2_m31_config())
+    Poseidon2M31Hash::new(POSEIDON2_M31_CONFIG.clone())
 }
 
+
+
 pub fn poseidon2_m31_compress() -> Poseidon2M31Compress {
-    Poseidon2M31Compress::new(poseidon2_m31_config())
+    Poseidon2M31Compress::new(POSEIDON2_M31_CONFIG.clone())
 }
 
 pub fn poseidon2_m31_mmcs() -> Poseidon2M31Mmcs {
-    Poseidon2M31Mmcs::new(poseidon2_m31_hash(), poseidon2_m31_compress())
+    Poseidon2M31Mmcs::new(POSEIDON2_M31_HASH.clone(), POSEIDON2_M31_COMPRESS.clone())
 }
 
 pub fn poseidon2_m31_challenge_mmcs() -> Poseidon2M31ChallengeMmcs {
-    Poseidon2M31ChallengeMmcs::new(poseidon2_m31_mmcs())
+    Poseidon2M31ChallengeMmcs::new(POSEIDON2_M31_MMCS.clone())
 }
 
 pub fn fri_config() -> FriConfig<Poseidon2M31ChallengeMmcs> {
@@ -67,13 +82,13 @@ pub fn fri_config() -> FriConfig<Poseidon2M31ChallengeMmcs> {
         log_blowup:1,
         num_queries:100,
         proof_of_work_bits:16,
-        mmcs: poseidon2_m31_challenge_mmcs()
+        mmcs: POSEIDON2_M31_CHALLENGE_MMCS.clone()
     }
 }
 
 pub fn pcs_config() -> Poseidon2M31Pcs {
     Poseidon2M31Pcs {
-        mmcs: poseidon2_m31_mmcs(),
+        mmcs: POSEIDON2_M31_MMCS.clone(),
         fri_config: fri_config(),
         _phantom: PhantomData
     }

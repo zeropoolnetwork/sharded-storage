@@ -1,6 +1,6 @@
 use p3_mersenne_31::Mersenne31;
 
-
+// Computed at ../examples/gen_seedboxes.rs
 
 pub const POSEIDON2_M31_W16_D5_ROUNDS_F: usize = 8;
 pub const POSEIDON2_M31_W16_D5_ROUNDS_P: usize = 14;

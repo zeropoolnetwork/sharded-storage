@@ -1,0 +1,27 @@
+[package]
+name = "shards"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+
+[dependencies]
+p3-challenger = {workspace = true}
+p3-circle = {workspace = true}
+p3-commit = {workspace = true}
+p3-field = {workspace = true}
+p3-matrix = {workspace = true}
+p3-maybe-rayon = {workspace = true}
+p3-mersenne-31 = {workspace = true}
+p3-util = {workspace = true}
+
+itertools = {workspace = true}
+primitives = {path = "../primitives"}
+
+[dev-dependencies]
+rand = {workspace = true}
+
+
+[features]
+parallel = ["p3-maybe-rayon/parallel"]
+default = ["parallel"]
