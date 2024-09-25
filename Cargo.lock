@@ -130,15 +130,15 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.86"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
+checksum = "86fdf8605db99b54d3cd748a44c6d04df638eb5dafb219b135d0149bd0db01f6"
 
 [[package]]
 name = "arrayref"
-version = "0.3.8"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d151e35f61089500b617991b791fc8bfd237ae50cd5950803758a179b41e67a"
+checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
 
 [[package]]
 name = "asn1-rs"
@@ -164,7 +164,7 @@ checksum = "965c2d33e53cb6b267e148a4cb0760bc01f4904c1cd4bb4002a085bb016d1490"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
  "synstructure",
 ]
 
@@ -176,14 +176,14 @@ checksum = "7b18050c2cd6fe86c3a76584ef5e0baf286d038cda203eb6223df2cc413565f7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
 name = "async-io"
-version = "2.3.3"
+version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d6baa8f0178795da0e71bc42c9e5d13261aac7ee549853162e66a241ba17964"
+checksum = "444b0228950ee6501b3568d3c93bf1176a1fdbc3b758dcd9475046d30f4dc7e8"
 dependencies = [
  "async-lock",
  "cfg-if",
@@ -195,7 +195,7 @@ dependencies = [
  "rustix",
  "slab",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -211,13 +211,13 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.81"
+version = "0.1.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e0c28dcc82d7c8ead5cb13beb15405b57b8546e93215673ff8ca0349a028107"
+checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -258,9 +258,9 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
 name = "axum"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a6c9af12842a67734c9a2e355436e5d03b22383ed60cf13cd0c18fbfe3dcbcf"
+checksum = "8f43644eed690f5374f1af436ecd6aea01cd201f6fbdf0178adaf6907afb2cec"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -293,9 +293,9 @@ dependencies = [
 
 [[package]]
 name = "axum-core"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a15c63fd72d41492dc4f497196f5da1fb04fb7529e631d73630d1b491e47a2e3"
+checksum = "5e6b8ba012a258d63c9adfa28b9ddcf66149da6f986c5b5452e629d5ee64bf00"
 dependencies = [
  "async-trait",
  "bytes",
@@ -306,7 +306,7 @@ dependencies = [
  "mime",
  "pin-project-lite",
  "rustversion",
- "sync_wrapper 0.1.2",
+ "sync_wrapper 1.0.1",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -413,15 +413,18 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.7.1"
+version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8318a53db07bb3f8dca91a600466bdb3f2eaadeedfdbcf02e1accbad9271ba50"
+checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
 
 [[package]]
 name = "cc"
-version = "1.1.7"
+version = "1.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26a5c3fd7bfa1ce3897a3a3501d362b2d87b7f2583ebcb4a949ec25911025cbc"
+checksum = "07b1695e2c7e8fc85310cde85aeaab7e3097f593c91d209d3f9df76c928100f0"
+dependencies = [
+ "shlex",
+]
 
 [[package]]
 name = "cfg-if"
@@ -466,9 +469,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.16"
+version = "4.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed6719fffa43d0d87e5fd8caeab59be1554fb028cd30edc88fc4369b17971019"
+checksum = "b0956a43b323ac1afaffc053ed5c4b7c1f1800bacd1683c353aabbb752515dd3"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -476,9 +479,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.15"
+version = "4.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "216aec2b177652e3846684cbfe25c9964d18ec45234f0f5da5157b207ed1aab6"
+checksum = "4d72166dd41634086d5803a47eb71ae740e61d84709c36f3c34110173db3961b"
 dependencies = [
  "anstream",
  "anstyle",
@@ -488,14 +491,14 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.5.13"
+version = "4.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501d359d5f3dcaf6ecdeee48833ae73ec6e42723a1e52419c79abf9507eec0a0"
+checksum = "4ac6a0c7b1a9e9a5186361f67dfa1b88213572f427fb9ab038efb2bd8c582dab"
 dependencies = [
- "heck 0.5.0",
+ "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -564,9 +567,9 @@ dependencies = [
 
 [[package]]
 name = "core-foundation-sys"
-version = "0.8.6"
+version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
+checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "core2"
@@ -579,11 +582,30 @@ dependencies = [
 
 [[package]]
 name = "cpufeatures"
-version = "0.2.12"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53fe5e26ff1b7aef8bca9c6080520cfb8d9333c7568e1829cef191a9723e5504"
+checksum = "608697df725056feaccfa42cffdaeeec3fccc4ffc38358ecd19b243e716a78e0"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "613f8cc01fe9cf1a3eb3d7f488fd2fa8388403e97039e2f73692932e291a770d"
+dependencies = [
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b82ac4a3c2ca9c3460964f020e1402edd5753411d7737aa39c3714ad1b5420e"
+dependencies = [
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -636,7 +658,7 @@ checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -717,7 +739,7 @@ checksum = "97369cbbc041bc366949bc74d34658d6cda5621039731c6310521892a3a20ae0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -774,14 +796,14 @@ dependencies = [
 
 [[package]]
 name = "enum-as-inner"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ffccbb6966c05b32ef8fbac435df276c4ae4d3dc55a8cd0eb9745e6c12f546a"
+checksum = "a1e6a265c649f3f5979b601d26f1d05ada116434c87741c9493cb56218f76cbc"
 dependencies = [
- "heck 0.4.1",
+ "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -833,9 +855,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fc0510504f03c51ada170672ac806f1f105a88aa97a5281117e1ddc3368e51a"
+checksum = "e8c02a5121d4ea3eb16a80748c74f5549a5665e4c21333c6098f283870fbdea6"
 
 [[package]]
 name = "fiat-crypto"
@@ -940,7 +962,7 @@ checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -1065,9 +1087,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa82e28a107a8cc405f0839610bdc9b15f1e25ec7d696aa5cf173edbcb1486ab"
+checksum = "524e8ac6999421f49a846c2d4411f337e53497d8ec55d67753beffa43c5d9205"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -1091,12 +1113,6 @@ dependencies = [
  "ahash",
  "allocator-api2",
 ]
-
-[[package]]
-name = "heck"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "heck"
@@ -1298,7 +1314,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "h2 0.4.5",
+ "h2 0.4.6",
  "http 1.1.0",
  "http-body 1.0.1",
  "httparse",
@@ -1312,9 +1328,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-rustls"
-version = "0.27.2"
+version = "0.27.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ee4be2c948921a1a5320b629c4193916ed787a7f7f293fd3f7f5a6c9de74155"
+checksum = "08afdbb5c31130e3034af566421053ab03787c640246a446327f550d11bcb333"
 dependencies = [
  "futures-util",
  "http 1.1.0",
@@ -1345,9 +1361,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cde7055719c54e36e95e8719f95883f22072a48ede39db7fc17a4e1d5281e9b9"
+checksum = "41296eb09f183ac68eec06e03cdbea2e759633d4067b2f6552fc2e009bcad08b"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -1358,7 +1374,6 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "tokio",
- "tower",
  "tower-service",
  "tracing",
 ]
@@ -1439,9 +1454,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
-version = "2.3.0"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de3fc2e30ba82dd1b3911c8de1ffc143c74a914a14e99514d7637e3099df5ea0"
+checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -1479,9 +1494,9 @@ dependencies = [
 
 [[package]]
 name = "ipnet"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f518f335dce6725a761382244631d86cf0ccb2863413590b31338feb467f9c3"
+checksum = "187674a687eed5fe42285b40c6291f9a01517d415fad1c3cbc6a9f778af7fcd4"
 
 [[package]]
 name = "is_terminal_polyfill"
@@ -1515,11 +1530,20 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "js-sys"
-version = "0.3.69"
+version = "0.3.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29c15563dc2726973df627357ce0c9ddddbea194836909d655df6a75d2cf296d"
+checksum = "1868808506b929d7b0cfa8f75951347aa71bb21144b7791bae35d9bccfcfe37a"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "keccak"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
+dependencies = [
+ "cpufeatures",
 ]
 
 [[package]]
@@ -1530,9 +1554,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.155"
+version = "0.2.159"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
+checksum = "561d97a539a36e26a9a5fad1ea11a3039a67714694aaa379433e580854bc3dc5"
 
 [[package]]
 name = "libp2p"
@@ -1800,10 +1824,10 @@ version = "0.34.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5daceb9dd908417b6dfcfe8e94098bc4aac54500c282e78120b885dadc09b999"
 dependencies = [
- "heck 0.5.0",
+ "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -1945,9 +1969,9 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "mime_guess"
-version = "2.0.4"
+version = "2.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4192263c238a5f0d0c6bfd21f336a313a4ce1c450542449ca191bb657b4642ef"
+checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
 dependencies = [
  "mime",
  "unicase",
@@ -1970,9 +1994,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4569e456d394deccd22ce1c1913e6ea0e54519f577285001215d33557431afe4"
+checksum = "80e04d1dcff3aae0704555fe5fee3bcfaf3d1fdf8a7e521d5b9d2b42acb52cec"
 dependencies = [
  "hermit-abi 0.3.9",
  "libc",
@@ -1999,9 +2023,9 @@ dependencies = [
 
 [[package]]
 name = "multiaddr"
-version = "0.18.1"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b852bc02a2da5feed68cd14fa50d0774b92790a5bdbfa932a813926c8472070"
+checksum = "fe6351f60b488e04c1d21bc69e56b89cb3f5e8f5d22557d6e8031bdfd79b6961"
 dependencies = [
  "arrayref",
  "byteorder",
@@ -2012,7 +2036,7 @@ dependencies = [
  "percent-encoding",
  "serde",
  "static_assertions",
- "unsigned-varint 0.7.2",
+ "unsigned-varint 0.8.0",
  "url",
 ]
 
@@ -2239,9 +2263,9 @@ dependencies = [
 
 [[package]]
 name = "oid-registry"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c958dd45046245b9c3c2547369bb634eb461670b2e7e0de552905801a648d1d"
+checksum = "a8d8034d9489cdaf79228eb9f6a3b8d7bb32ba00d6645ebd48eef4077ceb5bd9"
 dependencies = [
  "asn1-rs",
 ]
@@ -2281,7 +2305,7 @@ checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -2315,42 +2339,165 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
-name = "p3-dft"
+name = "p3-air"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+]
+
+[[package]]
+name = "p3-challenger"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-symmetric 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "tracing",
+]
+
+[[package]]
+name = "p3-circle"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
- "p3-field",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-util",
+ "p3-challenger",
+ "p3-commit",
+ "p3-dft 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-fri",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "p3-commit"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-challenger",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "serde",
+]
+
+[[package]]
+name = "p3-dft"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "tracing",
+]
+
+[[package]]
+name = "p3-dft"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-matrix 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
  "tracing",
 ]
 
 [[package]]
 name = "p3-field"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "num-bigint",
  "num-integer",
  "num-traits",
  "nums",
- "p3-util",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
  "rand",
  "serde",
 ]
 
 [[package]]
-name = "p3-matrix"
+name = "p3-field"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
 dependencies = [
  "itertools 0.13.0",
- "p3-field",
- "p3-maybe-rayon",
- "p3-util",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "nums",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "p3-fri"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-challenger",
+ "p3-commit",
+ "p3-dft 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-interpolation",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "p3-interpolation"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+]
+
+[[package]]
+name = "p3-matrix"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "rand",
+ "serde",
+ "tracing",
+ "transpose",
+]
+
+[[package]]
+name = "p3-matrix"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
  "rand",
  "serde",
  "tracing",
@@ -2360,37 +2507,94 @@ dependencies = [
 [[package]]
 name = "p3-maybe-rayon"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "rayon",
+]
+
+[[package]]
+name = "p3-maybe-rayon"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
 
 [[package]]
 name = "p3-mds"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.12.1",
- "p3-dft",
- "p3-field",
- "p3-matrix",
- "p3-symmetric",
- "p3-util",
+ "p3-dft 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-symmetric 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
  "rand",
+]
+
+[[package]]
+name = "p3-mds"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-dft 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-matrix 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-symmetric 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "rand",
+]
+
+[[package]]
+name = "p3-merkle-tree"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-commit",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-symmetric 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "serde",
+ "tracing",
 ]
 
 [[package]]
 name = "p3-mersenne-31"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "num-bigint",
- "p3-dft",
- "p3-field",
- "p3-matrix",
- "p3-maybe-rayon",
- "p3-mds",
- "p3-poseidon2",
- "p3-symmetric",
- "p3-util",
+ "p3-dft 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-mds 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-poseidon2 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-symmetric 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "p3-mersenne-31"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
+dependencies = [
+ "itertools 0.13.0",
+ "num-bigint",
+ "p3-dft 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-matrix 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-mds 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-poseidon2 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-symmetric 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-util 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
  "rand",
  "serde",
 ]
@@ -2398,38 +2602,86 @@ dependencies = [
 [[package]]
 name = "p3-poseidon2"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "gcd",
- "p3-field",
- "p3-mds",
- "p3-symmetric",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-mds 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-symmetric 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "rand",
+]
+
+[[package]]
+name = "p3-poseidon2"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
+dependencies = [
+ "gcd",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-mds 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-symmetric 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
  "rand",
 ]
 
 [[package]]
 name = "p3-symmetric"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
- "p3-field",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "serde",
+]
+
+[[package]]
+name = "p3-symmetric"
+version = "0.1.0"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "serde",
+]
+
+[[package]]
+name = "p3-uni-stark"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-air",
+ "p3-challenger",
+ "p3-commit",
+ "p3-dft 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "serde",
+ "tracing",
+]
+
+[[package]]
+name = "p3-util"
+version = "0.1.0"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "p3-util"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3#1ee813b1bada8eb5615d2956088b93624cd0a0b2"
+source = "git+https://github.com/Plonky3/Plonky3#fd5d113264f191ec3d4bfd6b86ac3b4377062d99"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "parking"
-version = "2.2.0"
+version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb813b8af86854136c6922af0598d719255ecb2179515e6e7730d468f05c9cae"
+checksum = "f38d5652c16fde515bb1ecef450ab0f6a219d619a7274976324d5e377f7dceba"
 
 [[package]]
 name = "parking_lot"
@@ -2493,7 +2745,7 @@ checksum = "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -2520,15 +2772,15 @@ dependencies = [
 
 [[package]]
 name = "pkg-config"
-version = "0.3.30"
+version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d231b230927b5e4ad203db57bbcbee2802f6bce620b1e4a9024a07d94e2907ec"
+checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
 name = "polling"
-version = "3.7.2"
+version = "3.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3ed00ed3fbf728b5816498ecd316d1716eecaced9c0c8d2c5a6740ca214985b"
+checksum = "cc2790cd301dec6cd3b7a025e4815cf825724a51c98dccfe6a3e55f05ffb6511"
 dependencies = [
  "cfg-if",
  "concurrent-queue",
@@ -2536,7 +2788,7 @@ dependencies = [
  "pin-project-lite",
  "rustix",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2578,6 +2830,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "primitives"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "p3-challenger",
+ "p3-circle",
+ "p3-commit",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-fri",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-merkle-tree",
+ "p3-mersenne-31 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-poseidon2 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-symmetric 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-uni-stark",
+ "rand",
+ "rand_chacha",
+ "sha3",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2606,7 +2879,7 @@ checksum = "440f724eba9f6996b75d63681b0a92b06947f1457076d503a4d2e2c8f56442b8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -2639,9 +2912,9 @@ dependencies = [
 
 [[package]]
 name = "quinn"
-version = "0.11.3"
+version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b22d8e7369034b9a7132bc2008cac12f2013c8132b45e0554e6e20e2617f2156"
+checksum = "8c7c5fdde3cdae7203427dc4f0a68fe0ed09833edc525a03456b153b79828684"
 dependencies = [
  "bytes",
  "futures-io",
@@ -2658,9 +2931,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.6"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba92fb39ec7ad06ca2582c0ca834dfeadcaf06ddfc8e635c80aa7e1c05315fdd"
+checksum = "fadfaed2cd7f389d0161bb73eeb07b7b78f8691047a6f3e73caaeae55310a4a6"
 dependencies = [
  "bytes",
  "rand",
@@ -2675,22 +2948,22 @@ dependencies = [
 
 [[package]]
 name = "quinn-udp"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bffec3605b73c6f1754535084a85229fa8a30f86014e6c81aeec4abb68b0285"
+checksum = "4fe68c2e9e1a1234e218683dbdf9f9dfcb094113c5ac2b938dfcb9bab4c4140b"
 dependencies = [
  "libc",
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
+checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
 dependencies = [
  "proc-macro2",
 ]
@@ -2726,6 +2999,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rayon"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b418a60154510ca1a002a752ca9714984e21e4241e804d32555251faf8b78ffa"
+dependencies = [
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1465873a3dfdaa8ae7cb14b4383657caab0b3e8a0aa9ae8e04b044854c8dfce2"
+dependencies = [
+ "crossbeam-deque",
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "rcgen"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2739,9 +3032,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.3"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a908a6e00f1fdd0dfd9c0eb08ce85126f6d8bbda50017e74bc4a4b7d4a926a4"
+checksum = "62871f2d65009c0256aed1b9cfeeb8ac272833c404e13d53d400cd0dad7a2ac0"
 dependencies = [
  "bitflags 2.6.0",
 ]
@@ -2786,7 +3079,7 @@ dependencies = [
  "encoding_rs",
  "futures-core",
  "futures-util",
- "h2 0.4.5",
+ "h2 0.4.6",
  "http 1.1.0",
  "http-body 1.0.1",
  "http-body-util",
@@ -2888,9 +3181,9 @@ checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
 
 [[package]]
 name = "rustc_version"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
+checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
 dependencies = [
  "semver",
 ]
@@ -2906,9 +3199,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.34"
+version = "0.38.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70dc5ec042f7a43c4a73241207cecc9873a06d45debb38b329f8541d85c2730f"
+checksum = "8acb788b847c24f28525660c4d7758620a7210875711f79e7f663cc152726811"
 dependencies = [
  "bitflags 2.6.0",
  "errno",
@@ -2919,14 +3212,14 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.12"
+version = "0.23.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c58f8c84392efc0a126acce10fa59ff7b3d2ac06ab451a33f2741989b806b044"
+checksum = "f2dabaac7466917e566adb06783a81ca48944c6898a1b08b9374106dd671f4c8"
 dependencies = [
  "once_cell",
  "ring 0.17.8",
  "rustls-pki-types",
- "rustls-webpki 0.102.6",
+ "rustls-webpki 0.102.8",
  "subtle",
  "zeroize",
 ]
@@ -2959,9 +3252,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.102.6"
+version = "0.102.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e6b52d4fda176fd835fdc55a835d4a89b8499cad995885a21149d5ad62f852e"
+checksum = "64ca1bc8749bd4cf37b5ce386cc146580777b4e8572c7b97baf22c83f444bee9"
 dependencies = [
  "ring 0.17.8",
  "rustls-pki-types",
@@ -2993,11 +3286,11 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "schannel"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
+checksum = "e9aaafd5a2b6e3d657ff009d82fbd630b6bd54dd4eb06f21693925cdf80f9b8b"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3021,9 +3314,9 @@ dependencies = [
 
 [[package]]
 name = "security-framework-sys"
-version = "2.11.1"
+version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75da29fe9b9b08fe9d6b22b5b4bcbc75d8db3aa31e639aa56bb62e9d46bfceaf"
+checksum = "ea4a292869320c0272d7bc55a5a6aafaff59b4f63404a003887b679a2e05b4b6"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -3037,29 +3330,29 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "serde"
-version = "1.0.207"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5665e14a49a4ea1b91029ba7d3bca9f299e1f7cfa194388ccc20f14743e784f2"
+checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.207"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aea2634c86b0e8ef2cfdc0c340baede54ec27b1e46febd7f80dffb2aa44a00e"
+checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
 name = "serde_json"
-version = "1.0.127"
+version = "1.0.128"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8043c06d9f82bd7271361ed64f415fe5e12a77fdb52e573e7f06a516dea329ad"
+checksum = "6ff5456707a1de34e7e37f2a6fd3d3f808c318259cbd01ab6377795054b483d8"
 dependencies = [
  "itoa",
  "memchr",
@@ -3101,6 +3394,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha3"
+version = "0.10.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
+dependencies = [
+ "digest",
+ "keccak",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3108,6 +3411,29 @@ checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "shards"
+version = "0.1.0"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-challenger",
+ "p3-circle",
+ "p3-commit",
+ "p3-field 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-matrix 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-maybe-rayon 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-mersenne-31 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "p3-util 0.1.0 (git+https://github.com/zeropoolnetwork/Plonky3?branch=fork/feature/cfft-symmetric-compatibility)",
+ "primitives",
+ "rand",
+]
+
+[[package]]
+name = "shlex"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "signal-hook-registry"
@@ -3228,9 +3554,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.72"
+version = "2.0.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc4b9b9bf2add8093d3f2c0204471e951b2285580335de42f9d2534f3ae7a8af"
+checksum = "9f35bcdf61fd8e7be6caf75f429fdca8beb3ed76584befb503b1569faee373ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3260,7 +3586,7 @@ checksum = "c8af7666ab7b6390ab78131fb5b0fce11d6b7a6951602017c35fa82800708971"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -3330,22 +3656,22 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.63"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0342370b38b6a11b6cc11d6a805569958d54cfa061a29969c3b5ce2ea405724"
+checksum = "d50af8abc119fb8bb6dbabcfa89656f46f84aa0ac7688088608076ad2b459a84"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.63"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4558b58466b9ad7ca0f102865eccc95938dca1a74a856f2b57b6629050da261"
+checksum = "08904e7672f5eb876eaaf87e0ce17857500934f4981c4a0ab2b4aa98baac7fc3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -3406,9 +3732,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.39.2"
+version = "1.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "daa4fb1bc778bd6f04cbfc4bb2d06a7396a8f299dc33ea1900cedaa316f467b1"
+checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
 dependencies = [
  "backtrace",
  "bytes",
@@ -3430,7 +3756,7 @@ checksum = "693d596312e88961bc67d7f1f97af8a70227d9f90c31bba5806eec004978d752"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -3456,9 +3782,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.11"
+version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cf6b47b3771c49ac75ad09a6162f53ad4b8088b76ac60e8ec1455b31a189fe1"
+checksum = "61e7c3654c13bcd040d4a03abee2c75b1d14a37b423cf5a813ceae1cc903ec6a"
 dependencies = [
  "bytes",
  "futures-core",
@@ -3469,14 +3795,14 @@ dependencies = [
 
 [[package]]
 name = "tower"
-version = "0.4.13"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
+checksum = "2873938d487c3cfb9aed7546dc9f2711d867c9f90c46b889989a2cb84eba6b4f"
 dependencies = [
  "futures-core",
  "futures-util",
- "pin-project",
  "pin-project-lite",
+ "sync_wrapper 0.1.2",
  "tokio",
  "tower-layer",
  "tower-service",
@@ -3485,15 +3811,15 @@ dependencies = [
 
 [[package]]
 name = "tower-layer"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
+checksum = "121c2a6cda46980bb0fcd1647ffaf6cd3fc79a013de288782836f6df9c48780e"
 
 [[package]]
 name = "tower-service"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
+checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tracing"
@@ -3515,7 +3841,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -3602,15 +3928,15 @@ checksum = "08f95100a766bf4f8f28f90d77e0a5461bbdb219042e7679bebe79004fed8d75"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.12"
+version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
 
 [[package]]
 name = "unicode-normalization"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a56d1686db2308d901306f92a263857ef59ea39678a5458e7cb17f01415101f5"
+checksum = "5033c97c4262335cded6d6fc3e5c18ab755e1a3dc96376350f3d8e9f009ad956"
 dependencies = [
  "tinyvec",
 ]
@@ -3707,34 +4033,35 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.92"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4be2531df63900aeb2bca0daaaddec08491ee64ceecbee5076636a3b026795a8"
+checksum = "a82edfc16a6c469f5f44dc7b571814045d60404b55a0ee849f9bcfa2e63dd9b5"
 dependencies = [
  "cfg-if",
+ "once_cell",
  "wasm-bindgen-macro",
 ]
 
 [[package]]
 name = "wasm-bindgen-backend"
-version = "0.2.92"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "614d787b966d3989fa7bb98a654e369c762374fd3213d212cfc0251257e747da"
+checksum = "9de396da306523044d3302746f1208fa71d7532227f15e347e2d93e4145dd77b"
 dependencies = [
  "bumpalo",
  "log",
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
  "wasm-bindgen-shared",
 ]
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.42"
+version = "0.4.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76bc14366121efc8dbb487ab05bcc9d346b3b5ec0eaa76e46594cabbe51762c0"
+checksum = "61e9300f63a621e96ed275155c108eb6f843b6a26d053f122ab69724559dc8ed"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -3744,9 +4071,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.92"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1f8823de937b71b9460c0c34e25f3da88250760bec0ebac694b49997550d726"
+checksum = "585c4c91a46b072c92e908d99cb1dcdf95c5218eeb6f3bf1efa991ee7a68cccf"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -3754,28 +4081,28 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.92"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e94f17b526d0a461a191c78ea52bbce64071ed5c04c9ffe424dcb38f74171bb7"
+checksum = "afc340c74d9005395cf9dd098506f7f44e38f2b4a21c6aaacf9a105ea5e1e836"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.92"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af190c94f2773fdb3729c55b007a722abb5384da03bc0986df4c289bf5567e96"
+checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
 
 [[package]]
 name = "web-sys"
-version = "0.3.69"
+version = "0.3.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77afa9a11836342370f4817622a2f0f418b134426d91a82dfb48f532d2ec13ef"
+checksum = "26fdeaafd9bd129f65e7c031593c24d62186301e0c72c8978fa1678be7d532c0"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -4057,9 +4384,9 @@ dependencies = [
 
 [[package]]
 name = "xml-rs"
-version = "0.8.21"
+version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "539a77ee7c0de333dcc6da69b177380a0b81e0dacfa4f7344c465a36871ee601"
+checksum = "af4e2e2f7cba5a093896c1e150fbfe177d1883e7448200efb81d40b9d339ef26"
 
 [[package]]
 name = "xmltree"
@@ -4128,7 +4455,7 @@ checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -4148,7 +4475,7 @@ checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.72",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -4168,10 +4495,10 @@ dependencies = [
 name = "zeropool-sharded-storage-common"
 version = "0.1.0"
 dependencies = [
- "p3-field",
- "p3-mersenne-31",
- "p3-poseidon2",
- "p3-symmetric",
+ "p3-field 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-mersenne-31 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-poseidon2 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-symmetric 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
  "serde",
 ]
 
@@ -4184,8 +4511,8 @@ dependencies = [
  "color-eyre",
  "dotenv",
  "libp2p",
- "p3-mersenne-31",
- "p3-poseidon2",
+ "p3-mersenne-31 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
+ "p3-poseidon2 0.1.0 (git+https://github.com/Plonky3/Plonky3)",
  "serde_json",
  "tokio",
  "tracing",
