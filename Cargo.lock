@@ -156,6 +156,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 
 [[package]]
+name = "libc-print"
+version = "0.1.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a660208db49e35faf57b37484350f1a61072f2a5becf0592af6015d9ddd4b0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -449,6 +458,7 @@ dependencies = [
 name = "primitives"
 version = "0.1.0"
 dependencies = [
+ "itertools 0.13.0",
  "lazy_static",
  "p3-challenger",
  "p3-circle",
@@ -456,6 +466,7 @@ dependencies = [
  "p3-field",
  "p3-fri",
  "p3-matrix",
+ "p3-maybe-rayon",
  "p3-merkle-tree",
  "p3-mersenne-31",
  "p3-poseidon2",
@@ -569,6 +580,7 @@ name = "shards"
 version = "0.1.0"
 dependencies = [
  "itertools 0.13.0",
+ "libc-print",
  "p3-challenger",
  "p3-circle",
  "p3-commit",

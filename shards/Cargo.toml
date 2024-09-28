@@ -20,7 +20,7 @@ primitives = {path = "../primitives"}
 
 [dev-dependencies]
 rand = {workspace = true}
-
+libc-print = {workspace = true}
 
 [features]
 parallel = ["p3-maybe-rayon/parallel"]

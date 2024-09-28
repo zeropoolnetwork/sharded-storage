@@ -16,6 +16,9 @@ p3-uni-stark = {workspace = true}
 p3-circle = {workspace = true}
 p3-fri = {workspace = true}
 p3-matrix = {workspace = true}
+p3-maybe-rayon = {workspace = true}
+
+itertools={workspace = true}
 
 lazy_static = "1.5.0"
 

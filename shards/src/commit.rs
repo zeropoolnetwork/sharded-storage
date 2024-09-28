@@ -4,7 +4,7 @@ use itertools::{Itertools, iterate};
 use p3_challenger::{CanObserve, FieldChallenger};
 use p3_circle::{CircleDomain, CircleEvaluations, Point};
 use p3_commit::Mmcs;
-use p3_field::PackedValue;
+use p3_field::{PackedValue, extension::ComplexExtendable};
 use p3_matrix::{Matrix, dense::RowMajorMatrix};
 use p3_maybe_rayon::prelude::*;
 use p3_mersenne_31::Mersenne31;
@@ -79,6 +79,7 @@ pub fn compute_subdomain_indexes(index: usize, log_blowup_factor: usize, log_dim
 /// A tuple containing:
 /// - `OptimisticCorrectableCommitment`: The computed commitment.
 /// - `Vec<Vec<Mersenne31>>`: The generated shards.
+#[must_use]
 pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_factor: usize) -> (OptimisticCorrectableCommitment, Vec<Vec<Mersenne31>>) {
     let mmcs = POSEIDON2_M31_MMCS.clone();
 
@@ -149,7 +150,8 @@ pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_fact
 /// # Returns
 ///
 /// The recovered data as a row-major matrix.
-pub fn recover_original_data<M: Matrix<Mersenne31>>(shards_matrix: M, subcoset_index: usize, log_blowup_factor: usize) -> RowMajorMatrix<Mersenne31> {
+#[must_use]
+pub fn recover_original_data_from_subcoset<M: Matrix<Mersenne31>>(shards_matrix: M, subcoset_index: usize, log_blowup_factor: usize) -> RowMajorMatrix<Mersenne31> {
     assert!(subcoset_index < (1 << log_blowup_factor), "Subcoset index out of bounds");
 
     let log_dimension = log2_strict_usize(shards_matrix.height());
@@ -161,10 +163,79 @@ pub fn recover_original_data<M: Matrix<Mersenne31>>(shards_matrix: M, subcoset_i
     recovered_evaluations.to_row_major_matrix().transpose()
 }
 
+/// numerator for L_P(X)
+#[inline]
+fn lagrange_num<F:ComplexExtendable>(domain:&CircleDomain<F>, x: Point<F>) -> F {
+    domain.zeroifier(x)
+}
+
+/// denominator for L_P(X)
+/// assuming p in domain
+#[inline]
+fn lagrange_denom<F:ComplexExtendable>(domain:&CircleDomain<F>, p:Point<F>, x: Point<F>) -> F {
+    p.v_tilde_p(x) * p.s_p_at_p(domain.log_n)
+}
+
+// 
+//
+
+/// Constructs the matrix used to recover the original data from shard indexes.
+/// This algorithm is O(N^3) where N is number of available shards.
+/// Should be computed only once for each set of indexes, so it is fast enough.
+/// But it is possible to optimize it and use O(N^2) algorithm using 
+/// algerbaic methods.
+///
+/// # Arguments
+///
+/// * `log_n` - The logarithm of the dimension for target evaluation domain
+/// * `indexes` - A slice of indexes corresponding to the shards.
+/// * `log_blowup_factor` - The logarithm of the blowup factor used for sharding
+///
+/// # Returns
+///
+/// A `RowMajorMatrix` representing the recovery matrix.
+#[must_use]
+pub fn recover_original_data_matrix(log_n:usize, indexes: &[usize], log_blowup_factor:usize) -> RowMajorMatrix<Mersenne31> {
+    let n = 1<<log_n;
+
+    let source_domain = CircleDomain::<Mersenne31>::standard(log_n + log_blowup_factor);
+    let target_domain = CircleDomain::<Mersenne31>::standard(log_n);
+
+    let all_points = source_domain.points().collect_vec();
+    let source_points = indexes.iter().map(|&i| all_points[i]).collect_vec();
+    let target_points = target_domain.points().collect_vec();
+
+    let m = (0..n).cartesian_product(0..n).map(|(i, k)| {
+        let p_s = source_points[i];
+        let p_t = target_points[k];
+        (lagrange_num(&target_domain, p_s), lagrange_denom(&target_domain, p_t, p_s))
+    }).collect_vec_rational();
+
+    invert_matrix(&RowMajorMatrix::new(m, n))
+}
+
+/// Recovers the original data matrix using the provided recovery matrix.
+///
+/// # Arguments
+///
+/// * `shards_matrix` - The matrix of shards.
+/// * `recover_matrix` - The recovery matrix used to reconstruct the original data.
+///
+/// # Returns
+///
+/// A row-major matrix containing the recovered original data.
+#[must_use]
+pub fn recover_original_data<M: Matrix<Mersenne31>>(shards_matrix: M, recover_matrix:&RowMajorMatrix<Mersenne31>) -> RowMajorMatrix<Mersenne31> {
+    multiply_matrices(recover_matrix, &shards_matrix.to_row_major_matrix()).transpose()
+}
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand::prelude::*;
+    use rand::seq::IteratorRandom;
 
     /// Tests that points over a subcoset are correctly selected from the target domain.
     #[test]
@@ -186,9 +257,9 @@ mod tests {
         assert_eq!(selected_points, subcoset_points, "Selected subcoset points do not match expected subcoset points");
     }
 
-    /// Tests the data recovery process from shards.
+    /// Tests the data recovery process from shards for subcoset
     #[test]
-    fn test_data_recovery() {
+    fn test_data_recovery_from_subcoset() {
         let mut rng = thread_rng();
         
         let log_blowup_factor = 3;
@@ -207,10 +278,40 @@ mod tests {
             1 << log_height,
         );
 
-        let recovered_data = recover_original_data(subcoset_data, subcoset_index, log_blowup_factor);
+        let recovered_data = recover_original_data_from_subcoset(subcoset_data, subcoset_index, log_blowup_factor);
 
         assert_eq!(recovered_data, original_data, "Recovered data does not match the original data");
     }
+
+    /// Tests the data recovery process from shards 
+    #[test]
+    fn test_data_recovery() {
+        let mut rng = thread_rng();
+        
+        let log_blowup_factor = 3;
+        let log_dimension = 4;
+        let log_height = 5;
+
+        let original_data = RowMajorMatrix::<Mersenne31>::rand(&mut rng, 1 << log_height, 1 << log_dimension);
+        
+        let shards_indexes = (0..(1<<(log_blowup_factor + log_dimension))).choose_multiple(&mut rng, 1<<log_dimension);
+
+
+        let (_, shards) = compute_commitment(original_data.clone(), log_blowup_factor);
+
+
+        let shards_data = RowMajorMatrix::new(
+            shards_indexes.iter().flat_map(|&i| shards[i].iter()).copied().collect_vec(),
+            1 << log_height,
+        );
+
+        let recover_matrix = recover_original_data_matrix(log_dimension, &shards_indexes, log_blowup_factor);
+
+        let recovered_data = recover_original_data(shards_data, &recover_matrix);
+
+        assert_eq!(recovered_data, original_data, "Recovered data does not match the original data");
+    }
+
 
     /// Tests that evaluations over a subcoset are consistent with the expanded data.
     #[test]
