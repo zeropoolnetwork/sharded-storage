@@ -1,6 +1,3 @@
-use alloc::vec::Vec;
-
-
 use p3_field::extension::{
     Complex, ComplexExtendable
 };
@@ -31,6 +28,7 @@ pub trait ExtFieldFlattener<From:Sized, To:PrimeField32> : Sized {
         assert!(i == 0);
     }
 }
+
 
 
 pub struct ExtensionFlattener;

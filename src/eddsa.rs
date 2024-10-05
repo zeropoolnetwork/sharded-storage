@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use crate::curve::{Params, Point, PointProjective};
+use crate::curve::{CurveParams, Point, PointProjective};
 use p3_symmetric::CryptographicHasher;
 use p3_field::{Field, PrimeField32};
 use ark_ff::{BigInteger, PrimeField};
@@ -11,36 +11,36 @@ use sha3::{Digest, Keccak256};
 
 use crate::flatten::ExtFieldFlattener;
 
-pub trait SigParams<const HASHER_OUT: usize>: Clone {
-    type P: Params;
+pub trait SigParams: Clone {
+    type P: CurveParams;
     type HasherOut;
     type Fb: Field + PrimeField32;
-    type Flattener: ExtFieldFlattener<<Self::P as Params>::Fq, Self::Fb>;
+    type Flattener: ExtFieldFlattener<<Self::P as CurveParams>::Fq, Self::Fb>;
 
-    type Hasher: CryptographicHasher<Self::Fb, [Self::Fb; HASHER_OUT]>;
+    type Hasher: CryptographicHasher<Self::Fb, [Self::Fb; 8]>;
 
     fn get_hasher(&self) -> &Self::Hasher;
 
-    fn hash_message(&self, message: &[Self::Fb]) -> [Self::Fb; HASHER_OUT] {
+    fn hash_message(&self, message: &[Self::Fb]) -> [Self::Fb; 8] {
         self.get_hasher().hash_slice(message)
     }
 
-    fn public_key(&self, private_key: <Self::P as Params>::Fs) -> <Self::P as Params>::Fq {
+    fn public_key(private_key: <Self::P as CurveParams>::Fs) -> <Self::P as CurveParams>::Fq {
         Point::from(Self::P::G8 * private_key).x
     }
 
     fn hash_r_a_m(
         &self,
-        point_r: <Self::P as Params>::Fq,
-        point_a: <Self::P as Params>::Fq,
-        hashed_message: [Self::Fb; HASHER_OUT],
-    ) -> <Self::P as Params>::Fs {
+        point_r: <Self::P as CurveParams>::Fq,
+        point_a: <Self::P as CurveParams>::Fq,
+        hashed_message: [Self::Fb; 8],
+    ) -> <Self::P as CurveParams>::Fs {
         let t = [point_r, point_a].iter()
-            .flat_map(|e| Self::Flattener::flatten_iter(e)).copied()
-            .chain(hashed_message.into_iter())
+            .flat_map(Self::Flattener::flatten_iter).copied()
+            .chain(hashed_message)
             .collect::<Vec<_>>();
 
-        let num_limbs = (<Self::P as Params>::Fs::MODULUS_BIT_SIZE + 31) / 32;
+        let num_limbs = (<Self::P as CurveParams>::Fs::MODULUS_BIT_SIZE + 31) / 32;
         let hash = self.get_hasher().hash_slice(&t);
         let limbs = successors(Some(hash), |x| Some(self.get_hasher().hash_slice(x)))
             .flat_map(|x| x.into_iter())
@@ -53,9 +53,9 @@ pub trait SigParams<const HASHER_OUT: usize>: Clone {
 
     fn hash_secret_m(
         &self,
-        secret: <Self::P as Params>::Fs,
+        secret: <Self::P as CurveParams>::Fs,
         message: &[Self::Fb],
-    ) -> <Self::P as Params>::Fs {
+    ) -> <Self::P as CurveParams>::Fs {
         let mut hasher = Keccak256::new();
         hasher.update(secret.into_bigint().to_bytes_le());
         for &item in message.iter() {
@@ -69,8 +69,8 @@ pub trait SigParams<const HASHER_OUT: usize>: Clone {
     fn sign(
         &self,
         message: &[Self::Fb],
-        private_key: <Self::P as Params>::Fs,
-    ) -> (<Self::P as Params>::Fq, <Self::P as Params>::Fs) {
+        private_key: <Self::P as CurveParams>::Fs,
+    ) -> (<Self::P as CurveParams>::Fq, <Self::P as CurveParams>::Fs) {
         let hashed_message = self.hash_message(message);
         let r = self.hash_secret_m(private_key, &hashed_message);
 
@@ -85,8 +85,8 @@ pub trait SigParams<const HASHER_OUT: usize>: Clone {
     fn verify(
         &self,
         message: &[Self::Fb],
-        signature: (<Self::P as Params>::Fq, <Self::P as Params>::Fs),
-        public_key: <Self::P as Params>::Fq,
+        signature: (<Self::P as CurveParams>::Fq, <Self::P as CurveParams>::Fs),
+        public_key: <Self::P as CurveParams>::Fq,
     ) -> bool {
         let _verify = move || {
             let point_r = Point::subgroup_decompress(signature.0)?;
@@ -116,7 +116,7 @@ mod tests {
         let private_key: Fs = thread_rng().gen();
 
         // derive public key
-        let public_key = sig_params.public_key(private_key);
+        let public_key = M31JubJubSigParams::public_key(private_key);
 
         let mut rng = thread_rng();
 

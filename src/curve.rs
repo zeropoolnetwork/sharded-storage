@@ -4,7 +4,7 @@ use core::cmp::Eq;
 use ark_ff::{PrimeField, BigInteger};
 use num_bigint::BigUint;
 
-pub trait Params: Sized + Clone + Copy {
+pub trait CurveParams: Sized + Clone + Copy {
     type Fq: Field;
     type Fs: PrimeField;
     const D: Self::Fq;
@@ -13,20 +13,20 @@ pub trait Params: Sized + Clone + Copy {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Point<P:Params> {
+pub struct Point<P:CurveParams> {
     pub x: P::Fq,
     pub y: P::Fq
 }
 
-impl <P:Params> PartialEq for Point<P> {
+impl <P:CurveParams> PartialEq for Point<P> {
     fn eq(&self, other: &Self) -> bool {
         self.x == other.x && self.y == other.y
     }
 }
 
-impl <P:Params> Eq for Point<P> {}
+impl <P:CurveParams> Eq for Point<P> {}
 
-impl <P:Params> Point<P> {
+impl <P:CurveParams> Point<P> {
     pub const fn new(x: P::Fq, y: P::Fq) -> Self {
         Point { x, y }
     }
@@ -73,7 +73,7 @@ impl <P:Params> Point<P> {
     }
 }
 
-impl <P:Params> From<PointProjective<P>> for Point<P> {
+impl <P:CurveParams> From<PointProjective<P>> for Point<P> {
     fn from(p: PointProjective<P>) -> Self {
         let z_inv = p.z.inverse();
         Point {
@@ -84,13 +84,13 @@ impl <P:Params> From<PointProjective<P>> for Point<P> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct PointProjective<P:Params> {
+pub struct PointProjective<P:CurveParams> {
     x: P::Fq,
     y: P::Fq,
     z: P::Fq
 }
 
-impl <P:Params> PointProjective<P> {
+impl <P:CurveParams> PointProjective<P> {
     pub const fn new(x: P::Fq, y: P::Fq, z: P::Fq) -> Self {
         PointProjective { x, y, z }
     }
@@ -142,7 +142,7 @@ impl <P:Params> PointProjective<P> {
     }
 }
 
-impl <P:Params> From<Point<P>> for PointProjective<P> {
+impl <P:CurveParams> From<Point<P>> for PointProjective<P> {
     fn from(p: Point<P>) -> Self {
         PointProjective {
             x: p.x,
@@ -152,7 +152,7 @@ impl <P:Params> From<Point<P>> for PointProjective<P> {
     }
 }
 
-impl <P:Params> PartialEq for PointProjective<P> {
+impl <P:CurveParams> PartialEq for PointProjective<P> {
     fn eq(&self, other: &Self) -> bool {
         let a = self.x * other.z;
         let b = other.x * self.z;
@@ -162,9 +162,9 @@ impl <P:Params> PartialEq for PointProjective<P> {
     }
 }   
 
-impl <P:Params> Eq for PointProjective<P> {}
+impl <P:CurveParams> Eq for PointProjective<P> {}
 
-impl <P:Params> Add<PointProjective<P>> for PointProjective<P> {
+impl <P:CurveParams> Add<PointProjective<P>> for PointProjective<P> {
     type Output = PointProjective<P>;
 
     // From https://www.hyperelliptic.org/EFD/g1p/auto-edwards-projective.html#add-2007-bl
@@ -199,7 +199,7 @@ impl <P:Params> Add<PointProjective<P>> for PointProjective<P> {
     }
 }
 
-impl <P:Params> Neg for PointProjective<P> {
+impl <P:CurveParams> Neg for PointProjective<P> {
     type Output = PointProjective<P>;
 
     fn neg(self) -> PointProjective<P> {
@@ -211,7 +211,7 @@ impl <P:Params> Neg for PointProjective<P> {
     }
 }
 
-impl <P:Params> Sub<PointProjective<P>> for PointProjective<P> {
+impl <P:CurveParams> Sub<PointProjective<P>> for PointProjective<P> {
     type Output = PointProjective<P>;
 
     fn sub(self, other: PointProjective<P>) -> PointProjective<P> {
@@ -219,21 +219,22 @@ impl <P:Params> Sub<PointProjective<P>> for PointProjective<P> {
     }
 }
 
-impl <P:Params> AddAssign<PointProjective<P>> for PointProjective<P> {
+impl <P:CurveParams> AddAssign<PointProjective<P>> for PointProjective<P> {
     fn add_assign(&mut self, other: PointProjective<P>) {
         *self = *self + other;
     }
 }
 
-impl <P:Params> SubAssign<PointProjective<P>> for PointProjective<P> {
+impl <P:CurveParams> SubAssign<PointProjective<P>> for PointProjective<P> {
     fn sub_assign(&mut self, other: PointProjective<P>) {
         *self = *self - other;
     }
 }
 
-impl <P:Params, IntoBigUint:Into<BigUint>> Mul<IntoBigUint> for PointProjective<P> {
+impl <P:CurveParams, IntoBigUint:Into<BigUint>> Mul<IntoBigUint> for PointProjective<P> {
     type Output = PointProjective<P>;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn mul(self, scalar: IntoBigUint) -> PointProjective<P> {
         let scalar: BigUint = scalar.into();
         let mut res = PointProjective {
@@ -245,7 +246,8 @@ impl <P:Params, IntoBigUint:Into<BigUint>> Mul<IntoBigUint> for PointProjective<
         for i in (0.. scalar.bits()).rev() {
             res = res.double();
             if scalar.bit(i) {
-                res = res + self;
+                
+                res += self;
             }
         }
 
@@ -253,7 +255,7 @@ impl <P:Params, IntoBigUint:Into<BigUint>> Mul<IntoBigUint> for PointProjective<
     }
 }
 
-impl <P:Params, BigInt:BigInteger> MulAssign<BigInt> for PointProjective<P> {
+impl <P:CurveParams, BigInt:BigInteger> MulAssign<BigInt> for PointProjective<P> {
     fn mul_assign(&mut self, scalar: BigInt) {
         *self = *self * scalar;
     }

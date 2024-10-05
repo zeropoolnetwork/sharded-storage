@@ -6,7 +6,7 @@ use p3_mersenne_31::DiffusionMatrixMersenne31;
 use p3_symmetric::PaddingFreeSponge;
 
 use crate::eddsa::SigParams;
-use crate::curve::{Params, PointProjective};
+use crate::curve::{CurveParams, PointProjective};
 use crate::m31::{Fq, FqBase, Fs, fq_new_from_raw};
 use crate::flatten::ComplexExtensionFlattener;
 
@@ -18,7 +18,7 @@ type MyHash = PaddingFreeSponge<Perm, 16, 8, 8>;
 #[derive(Clone, Copy, Debug)]
 pub struct M31JubJubParams;
 
-impl Params for M31JubJubParams {
+impl CurveParams for M31JubJubParams {
     type Fq = Fq;
     type Fs = Fs;
     const D: Self::Fq = fq_new_from_raw([1530180101, 1286903024, 823193794, 1929909262, 1865204271, 2066283225, 1349906444, 1236191318]);
@@ -52,7 +52,7 @@ impl Default for M31JubJubSigParams {
     }
 }
 
-impl SigParams<8> for M31JubJubSigParams
+impl SigParams for M31JubJubSigParams
 {
     type P = M31JubJubParams;
     type HasherOut = [Fq; 8];
