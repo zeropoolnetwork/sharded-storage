@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-p3-mersenne-31 = { git = "https://github.com/Plonky3/Plonky3" }
-p3-poseidon2 = { git = "https://github.com/Plonky3/Plonky3" }
-p3-symmetric = { git = "https://github.com/Plonky3/Plonky3" }
-p3-field = { git = "https://github.com/Plonky3/Plonky3" }
+p3-mersenne-31 = { workspace = true }
+p3-poseidon2 = { workspace = true }
+p3-symmetric = { workspace = true }
+p3-field = { workspace = true }
 serde = "1.0.207"

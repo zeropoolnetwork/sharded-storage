@@ -1,3 +1,4 @@
+use p3_mersenne_31::Mersenne31;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,5 +30,17 @@ impl StorageConfig {
             q: 512,
             k: 33554432,
         }
+    }
+
+    pub fn num_chunks(&self) -> usize {
+        self.q / self.m
+    }
+
+    pub fn sector_capacity(&self) -> usize {
+        self.n * self.m
+    }
+
+    pub fn sector_capacity_bytes(&self) -> usize {
+        self.n * self.m * 30 / 8
     }
 }

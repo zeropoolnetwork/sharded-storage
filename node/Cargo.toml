@@ -4,15 +4,20 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-color-eyre = "0.6.3"
-libp2p = { version = "0.53.2", features = [ "tokio", "gossipsub", "mdns", "noise", "macros", "tcp", "yamux", "quic"] }
-tokio = {  version = "1.39.2", features = ["full"] }
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
+color-eyre = { workspace = true }
+libp2p = { workspace = true, features = ["tokio", "noise", "macros", "tcp", "yamux", "quic", "identify", "rendezvous", "relay", "ping", "kad", "request-response", "gossipsub", "cbor"] }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
-p3-mersenne-31 = { git = "https://github.com/Plonky3/Plonky3" }
-p3-poseidon2 = { git = "https://github.com/Plonky3/Plonky3" }
-axum = { version = "0.7.5", features = ["multipart"] }
-dotenv = "0.15.0"
-serde_json = "1.0.124"
-clap = "4.5.16"
+p3-mersenne-31 = { workspace = true }
+p3-poseidon2 = { workspace = true }
+axum = { workspace = true, features = ["multipart"] }
+dotenv = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+bincode = { workspace = true }
+m31jubjub = { workspace = true }
+
+zeropool-sharded-storage-common = { path = "../common" }

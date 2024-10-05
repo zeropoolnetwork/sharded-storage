@@ -11,3 +11,5 @@ tokio = "1.39.2"
 zeropool-sharded-storage-common = { path = "../common" }
 serde = "1.0.207"
 bincode = "1.3.3"
+m31jubjub = { workspace = true }
+rand = { workspace = true }

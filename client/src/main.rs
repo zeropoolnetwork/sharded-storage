@@ -1,18 +1,24 @@
-use std::fs;
+use std::{fs, path::PathBuf};
+
 use clap::{Parser, Subcommand};
+use m31jubjub::{
+    eddsa::SigParams,
+    hdwallet::{priv_key, pub_key},
+    m31::{FqBase, Fs, M31JubJubSigParams},
+};
+use rand::{thread_rng, Rng};
 use reqwest::multipart;
-use serde_json::Value;
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use tokio::{
-    io::{AsyncReadExt}
-};
+use serde_json::Value;
+use tokio::io::AsyncReadExt;
 use zeropool_sharded_storage_common::{
+    // blowup,
     config::StorageConfig,
-    blowup,
+    encode::{decode, encode},
     Field,
-    encode::{encode, decode}
 };
+
+const KEY_PATH: &str = "m/42/0'/1337'"; // FIXME
 
 // TODO: Proper logging
 #[derive(Parser)]
@@ -29,6 +35,10 @@ enum Commands {
     Upload {
         #[arg(short, long)]
         file: PathBuf,
+        #[arg(short, long)]
+        sector: usize,
+        #[arg(short, long)]
+        mnemonic: String,
     },
     Download {
         #[arg(short, long)]
@@ -46,8 +56,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let storage_config = serde_json::from_str(&fs::read_to_string("storage_config.json")?)?;
 
     match cli.command {
-        Commands::Upload { file } => {
-            upload_file(file, &cli.node_url, &storage_config).await?;
+        Commands::Upload {
+            file,
+            sector,
+            mnemonic,
+        } => {
+            upload_file(file, &cli.node_url, &storage_config, sector, &mnemonic).await?;
         }
         Commands::Download { id, output, size } => {
             download_file(id, size, output, &cli.node_url, &storage_config).await?;
@@ -57,13 +71,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn upload_file(file_path: PathBuf, node: &str, storage_config: &StorageConfig) -> Result<(), Box<dyn std::error::Error>> {
+async fn upload_file(
+    file_path: PathBuf,
+    node: &str,
+    storage_config: &StorageConfig,
+    sector: usize,
+    mnemonic: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let config = StorageConfig::dev(); // FIXME
-    // let mut file = File::open(file_path).await?;
-    // let file_size = file.metadata().await?.len();
     let file_data = fs::read(&file_path)?;
 
-    let sector_size = storage_config.n * storage_config.m;
+    if file_data.len() > storage_config.sector_capacity_bytes() {
+        return Err("File is too large".into());
+    }
+
     let blowup_factor = storage_config.q / storage_config.m;
 
     let client = reqwest::Client::new();
@@ -81,26 +102,34 @@ async fn upload_file(file_path: PathBuf, node: &str, storage_config: &StorageCon
         return Err("Not enough nodes to upload the file".into());
     }
 
-    let encoded_file = encode(&file_data);
-    let blown_up_sectors = encoded_file.chunks(sector_size).map(|sector| blowup(sector, &config));
+    let encoded_file = encode(&file_data)
+        .into_iter()
+        .chain((0..).map(|_| Field::new(0)))
+        .take(config.sector_capacity())
+        .collect::<Vec<_>>();
 
-    // FIXME: Allocate sectors beforehand
-    for (sector_index, sector) in blown_up_sectors.enumerate() {
-        let sector_shards = sector.chunks(storage_config.n);
+    // TODO: Limit to one sector for now
 
-        for shard in sector_shards {
-            let shard_data = bincode::serialize(shard)?;
-            let node_url = nodes[sector_index]["address"].as_str().unwrap();
-            upload_shard(&client, sector_index, node_url, shard_data).await?;
-        }
+    // FIXME: commitment
+
+    let sector_shards = encoded_file.chunks(storage_config.num_chunks());
+    let sig_params = M31JubJubSigParams::default();
+    let private_key = priv_key(mnemonic, KEY_PATH).unwrap();
+    let public_key = pub_key(mnemonic, KEY_PATH).unwrap();
+    let signature = sig_params.sign(&encoded_file, private_key);
+
+    // TODO: Proper sector allocation/reservation
+    for (i, shard) in sector_shards.enumerate() {
+        let shard_data = bincode::serialize(shard)?;
+        let node_url = nodes[sector + i]["address"].as_str().unwrap();
+        upload_sector(&client, sector + i, node_url, shard_data).await?;
     }
-
 
     println!("File uploaded successfully!");
     Ok(())
 }
 
-async fn upload_shard(
+async fn upload_sector(
     client: &reqwest::Client,
     index: usize,
     node_url: &str,
@@ -126,7 +155,7 @@ async fn upload_shard(
     }
 }
 
-async fn download_shard(
+async fn download_sector(
     client: &reqwest::Client,
     index: usize,
     node_url: &str,
@@ -145,7 +174,13 @@ async fn download_shard(
     }
 }
 
-async fn download_file(file_id: String, size: usize, output: PathBuf, node: &str, storage_config: &StorageConfig) -> Result<(), Box<dyn std::error::Error>> {
+async fn download_file(
+    file_id: String,
+    size: usize,
+    output: PathBuf,
+    node: &str,
+    storage_config: &StorageConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
 
     let nodes_response: Value = client
@@ -157,7 +192,7 @@ async fn download_file(file_id: String, size: usize, output: PathBuf, node: &str
 
     let nodes = nodes_response["peers"].as_array().unwrap();
     let blowup_factor = storage_config.q / storage_config.m;
-    let sector_size = storage_config.n * storage_config.m;
+    // let sector_size = storage_config.n * storage_config.m;
 
     if nodes.len() < blowup_factor {
         return Err("Not enough nodes to download the file".into());
@@ -171,7 +206,7 @@ async fn download_file(file_id: String, size: usize, output: PathBuf, node: &str
 
         for i in 0..blowup_factor {
             let node_url = nodes[i]["address"].as_str().unwrap();
-            match download_shard(&client, sector_index, node_url).await {
+            match download_sector(&client, sector_index, node_url).await {
                 Ok(shard) => {
                     sector_shards.push(shard);
                 }
@@ -183,8 +218,13 @@ async fn download_file(file_id: String, size: usize, output: PathBuf, node: &str
             break;
         }
 
-        let values = sector_shards.iter().flatten().copied().collect::<Vec<Field>>();
-        let reconstructed_sector = zeropool_sharded_storage_common::reconstruct(&values, &storage_config);
+        let values = sector_shards
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<Field>>();
+        let reconstructed_sector =
+            zeropool_sharded_storage_common::reconstruct(&values, &storage_config);
         downloaded_data.extend_from_slice(&reconstructed_sector);
 
         sector_index += 1;
