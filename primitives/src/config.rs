@@ -16,6 +16,8 @@ use lazy_static::lazy_static;
 
 use core::marker::PhantomData;
 
+use crate::utils::StreamCipher;
+
 pub type Poseidon2M31Perm = Poseidon2<Mersenne31, Poseidon2ExternalMatrixGeneral, DiffusionMatrixMersenne31, 16, 5>;
 pub type Poseidon2M31Hash = PaddingFreeSponge<Poseidon2M31Perm, 16, 8, 8>;
 pub type Poseidon2M31Compress = TruncatedPermutation<Poseidon2M31Perm, 2, 8, 16>;
@@ -35,6 +37,8 @@ pub type Poseidon2M31Pcs = CirclePcs<Mersenne31, Poseidon2M31Mmcs, Poseidon2M31C
 pub type Poseidon2M31StarkConfig = StarkConfig<Poseidon2M31Pcs, Challenge, Poseidon2M31Challenger>;
 
 pub type Hash = p3_symmetric::Hash<Mersenne31, Mersenne31, 8>;
+
+pub type M31StreamCipher = StreamCipher<Mersenne31, Poseidon2M31Perm, 16, 8>;
 
 lazy_static!{
     pub static ref POSEIDON2_M31_CONFIG: Poseidon2M31Perm = poseidon2_m31_config();

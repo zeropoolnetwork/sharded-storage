@@ -546,6 +546,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sealing"
+version = "0.1.0"
+dependencies = [
+ "itertools 0.13.0",
+ "p3-circle",
+ "p3-matrix",
+ "p3-mersenne-31",
+ "primitives",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
