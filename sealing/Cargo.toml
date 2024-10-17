@@ -1,0 +1,13 @@
+[package]
+name = "sealing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+p3-circle = {workspace = true}
+p3-matrix = {workspace = true}
+p3-mersenne-31 = {workspace = true}
+
+itertools = {workspace = true}
+
+primitives = {path = "../primitives"}
