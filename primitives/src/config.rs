@@ -41,7 +41,7 @@ pub type Hash = p3_symmetric::Hash<Mersenne31, Mersenne31, 8>;
 pub type M31StreamCipher = StreamCipher<Mersenne31, Poseidon2M31Perm, 16, 8>;
 
 lazy_static!{
-    pub static ref POSEIDON2_M31_CONFIG: Poseidon2M31Perm = poseidon2_m31_config();
+    pub static ref POSEIDON2_M31_PERM: Poseidon2M31Perm = poseidon2_m31_perm();
     pub static ref POSEIDON2_M31_HASH: Poseidon2M31Hash = poseidon2_m31_hash();
     pub static ref POSEIDON2_M31_COMPRESS: Poseidon2M31Compress = poseidon2_m31_compress();
     pub static ref POSEIDON2_M31_MMCS: Poseidon2M31Mmcs = poseidon2_m31_mmcs();
@@ -50,7 +50,7 @@ lazy_static!{
 
 
 
-pub fn poseidon2_m31_config() -> Poseidon2M31Perm {
+pub fn poseidon2_m31_perm() -> Poseidon2M31Perm {
     Poseidon2M31Perm::new(
         crate::POSEIDON2_M31_W16_D5_ROUNDS_F,
         crate::POSEIDON2_M31_W16_D5_EXTERNAL_CONSTANTS.to_vec(),
@@ -64,13 +64,13 @@ pub fn poseidon2_m31_config() -> Poseidon2M31Perm {
 
 
 pub fn poseidon2_m31_hash() -> Poseidon2M31Hash {
-    Poseidon2M31Hash::new(POSEIDON2_M31_CONFIG.clone())
+    Poseidon2M31Hash::new(POSEIDON2_M31_PERM.clone())
 }
 
 
 
 pub fn poseidon2_m31_compress() -> Poseidon2M31Compress {
-    Poseidon2M31Compress::new(POSEIDON2_M31_CONFIG.clone())
+    Poseidon2M31Compress::new(POSEIDON2_M31_PERM.clone())
 }
 
 pub fn poseidon2_m31_mmcs() -> Poseidon2M31Mmcs {

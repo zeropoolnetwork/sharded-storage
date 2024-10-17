@@ -115,7 +115,7 @@ pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_fact
 
     let (root_shards_hash, _) = mmcs.commit_vec(concatenated_hashes);
 
-    let mut challenger = Poseidon2M31Challenger::new(POSEIDON2_M31_CONFIG.clone());
+    let mut challenger = Poseidon2M31Challenger::new(POSEIDON2_M31_PERM.clone());
     let (pcs_commitment, _) = pcs_commit(vec![(commitment_domain, row_major_data.clone())]);
 
     challenger.observe(pcs_commitment);

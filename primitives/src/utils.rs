@@ -159,8 +159,8 @@ pub fn multiply_matrices<T:Field>(
 
 
 
-pub fn poseidon2_hash(input: Vec<Mersenne31>) -> [Mersenne31; 8] {
-    POSEIDON2_M31_HASH.hash_iter(input)
+pub fn poseidon2_hash(input: &[Mersenne31]) -> [Mersenne31; 8] {
+    POSEIDON2_M31_HASH.hash_iter(input.iter().copied())
 }
 
 type PcsCommitment = <Poseidon2M31Pcs as Pcs::<Challenge,Poseidon2M31Challenger>>::Commitment;
