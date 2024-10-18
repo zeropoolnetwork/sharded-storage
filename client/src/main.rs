@@ -114,8 +114,8 @@ async fn upload_file(
 
     let sector_shards = encoded_file.chunks(storage_config.num_chunks());
     let sig_params = M31JubJubSigParams::default();
-    let private_key = priv_key(mnemonic, KEY_PATH).unwrap();
-    let public_key = pub_key(mnemonic, KEY_PATH).unwrap();
+    let private_key = priv_key::<M31JubJubSigParams>(mnemonic, KEY_PATH).unwrap();
+    let public_key = pub_key::<M31JubJubSigParams>(mnemonic, KEY_PATH).unwrap();
     let signature = sig_params.sign(&encoded_file, private_key);
 
     // TODO: Proper sector allocation/reservation

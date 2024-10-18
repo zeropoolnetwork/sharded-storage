@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use base64::{prelude::BASE64_STANDARD, Engine};
 use serde_json::json;
 use tokio::sync::Mutex;
 
@@ -31,7 +32,7 @@ async fn upload_sector(
 
         state
             .storage
-            .write_sector(
+            .write(
                 data.to_vec(),
                 file_name.parse().map_err(|_| StatusCode::BAD_REQUEST)?,
             )
@@ -47,16 +48,17 @@ async fn upload_sector(
 async fn download_sector(
     state: axum::extract::State<Arc<AppState>>,
     Path(sector_id): Path<usize>,
-) -> color_eyre::Result<Vec<u8>, StatusCode> {
+) -> color_eyre::Result<String, StatusCode> {
     let data = state
         .storage
-        .read_sector(sector_id)
+        .read(sector_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // TODO: Return data from the storage as a Vec of field elements and then serialize/compress them.
+    let bin_data = bincode::serialize(&data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let base64_data = BASE64_STANDARD.encode(&bin_data);
 
-    Ok(data)
+    Ok(base64_data)
 }
 
 async fn info_handler(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json::Value> {

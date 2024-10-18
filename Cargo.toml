@@ -44,3 +44,4 @@ clap = "4.5.19"
 dotenv = "0.15.0"
 tokio = "1.40.0"
 m31jubjub = { git = "https://github.com/zeropoolnetwork/m31jubjub.git" }
+base64 = "0.22.1"

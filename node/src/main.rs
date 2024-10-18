@@ -152,12 +152,12 @@ async fn main() -> Result<()> {
                 SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
                     tracing::debug!("Disconnected from {peer_id}");
                 }
-                SwarmEvent::Behaviour(BehaviourEvent::Mdns(mdns::Event::Discovered(list))) => {
-                    for (peer_id, _multiaddr) in list {
-                        tracing::info!("mDNS discovered a new peer: {peer_id}");
-                        // swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-                    }
-                }
+                // SwarmEvent::Behaviour(BehaviourEvent::Mdns(mdns::Event::Discovered(list))) => {
+                //     for (peer_id, _multiaddr) in list {
+                //         tracing::info!("mDNS discovered a new peer: {peer_id}");
+                //         // swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
+                //     }
+                // }
                 // SwarmEvent::Behaviour(BehaviourEvent::Mdns(mdns::Event::Expired(list))) => {
                 //     for (peer_id, _multiaddr) in list {
                 //         tracing::info!("mDNS discover peer has expired: {peer_id}");
