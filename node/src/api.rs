@@ -29,11 +29,12 @@ async fn upload_sector(
         let _name = field.name().unwrap().to_string();
         let file_name = field.file_name().unwrap().to_string();
         let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+        let elements = bincode::deserialize(&data).map_err(|_| StatusCode::BAD_REQUEST)?;
 
         state
             .storage
             .write(
-                data.to_vec(),
+                elements,
                 file_name.parse().map_err(|_| StatusCode::BAD_REQUEST)?,
             )
             .await

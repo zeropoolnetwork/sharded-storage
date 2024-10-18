@@ -19,12 +19,15 @@ impl Storage {
         })
     }
 
-    pub async fn write(&self, data: Vec<u8>, index: usize) -> Result<()> {
+    pub async fn write(&self, data: Vec<Mersenne31>, index: usize) -> Result<()> {
         let mut file = tokio::fs::OpenOptions::new()
             .write(true)
             .create(true)
             .open(self.path.join(index.to_string()))
             .await?;
+
+        let data = bincode::serialize(&data)?;
+
         file.write_all(&data).await?;
         Ok(())
     }
@@ -38,12 +41,7 @@ impl Storage {
         let mut data = Vec::new();
         file.read_to_end(&mut data).await?;
 
-        let data = data
-            .chunks(4)
-            .map(|chunk| {
-                Mersenne31::new(u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
-            })
-            .collect();
+        let data = bincode::deserialize(&data)?;
 
         Ok(data)
     }
