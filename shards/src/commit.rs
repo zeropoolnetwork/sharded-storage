@@ -7,9 +7,10 @@ use p3_commit::Mmcs;
 use p3_field::{PackedValue, extension::ComplexExtendable};
 use p3_matrix::{Matrix, dense::RowMajorMatrix};
 use p3_maybe_rayon::prelude::*;
-use p3_mersenne_31::Mersenne31;
 use p3_util::log2_strict_usize;
 use primitives::*;
+
+use primitives::Val;
 
 /// Represents an optimistic correctable commitment with PCS commitment, root hash of shards, and opening evaluations at a challenge point.
 pub struct OptimisticCorrectableCommitment {
@@ -37,7 +38,7 @@ pub struct OptimisticCorrectableCommitment {
 ///
 /// A new `CircleDomain` representing the subdomain.
 #[must_use]
-pub fn compute_subdomain(index: usize, log_blowup_factor: usize, log_dimension: usize) -> CircleDomain<Mersenne31> {
+pub fn compute_subdomain(index: usize, log_blowup_factor: usize, log_dimension: usize) -> CircleDomain<Val> {
     assert!(index < (1 << log_blowup_factor), "Subdomain index out of bounds");
 
     let shift_point = Point::generator(log_dimension + log_blowup_factor + 1);
@@ -78,10 +79,10 @@ pub fn compute_subdomain_indexes(index: usize, log_blowup_factor: usize, log_dim
 ///
 /// A tuple containing:
 /// - `OptimisticCorrectableCommitment`: The computed commitment.
-/// - `Vec<Vec<Mersenne31>>`: The generated shards.
+/// - `Vec<Vec<Val>>`: The generated shards.
 #[must_use]
-pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_factor: usize) -> (OptimisticCorrectableCommitment, Vec<Vec<Mersenne31>>) {
-    let mmcs = POSEIDON2_M31_MMCS.clone();
+pub fn compute_commitment<M: Matrix<Val>>(data_matrix: M, log_blowup_factor: usize) -> (OptimisticCorrectableCommitment, Vec<Vec<Val>>) {
+    let mmcs = POSEIDON2_MMCS.clone();
 
     let data_width = data_matrix.width();
     let data_height = data_matrix.height();
@@ -89,9 +90,9 @@ pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_fact
     let log_num_shards = log_data_width + log_blowup_factor;
     let log_data_height = log2_strict_usize(data_height);
 
-    let data_domain = CircleDomain::<Mersenne31>::standard(log_data_width);
-    let shards_domain = CircleDomain::<Mersenne31>::standard(log_num_shards);
-    let commitment_domain = CircleDomain::<Mersenne31>::standard(log_data_height);
+    let data_domain = CircleDomain::<Val>::standard(log_data_width);
+    let shards_domain = CircleDomain::<Val>::standard(log_num_shards);
+    let commitment_domain = CircleDomain::<Val>::standard(log_data_height);
     let row_major_data = data_matrix.to_row_major_matrix();
     let transposed_data = row_major_data.transpose();
 
@@ -115,7 +116,7 @@ pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_fact
 
     let (root_shards_hash, _) = mmcs.commit_vec(concatenated_hashes);
 
-    let mut challenger = Poseidon2M31Challenger::new(POSEIDON2_M31_PERM.clone());
+    let mut challenger = Poseidon2Challenger::new(POSEIDON2_PERM.clone());
     let (pcs_commitment, _) = pcs_commit(vec![(commitment_domain, row_major_data.clone())]);
 
     challenger.observe(pcs_commitment);
@@ -151,12 +152,12 @@ pub fn compute_commitment<M: Matrix<Mersenne31>>(data_matrix: M, log_blowup_fact
 ///
 /// The recovered data as a row-major matrix.
 #[must_use]
-pub fn recover_original_data_from_subcoset<M: Matrix<Mersenne31>>(shards_matrix: M, subcoset_index: usize, log_blowup_factor: usize) -> RowMajorMatrix<Mersenne31> {
+pub fn recover_original_data_from_subcoset<M: Matrix<Val>>(shards_matrix: M, subcoset_index: usize, log_blowup_factor: usize) -> RowMajorMatrix<Val> {
     assert!(subcoset_index < (1 << log_blowup_factor), "Subcoset index out of bounds");
 
     let log_dimension = log2_strict_usize(shards_matrix.height());
     let source_domain = compute_subdomain(subcoset_index, log_blowup_factor, log_dimension);
-    let target_domain = CircleDomain::<Mersenne31>::standard(log_dimension);
+    let target_domain = CircleDomain::<Val>::standard(log_dimension);
     let recovered_evaluations = CircleEvaluations::from_natural_order(source_domain, shards_matrix)
         .extrapolate(target_domain)
         .to_natural_order();
@@ -195,11 +196,11 @@ fn lagrange_denom<F:ComplexExtendable>(domain:&CircleDomain<F>, p:Point<F>, x: P
 ///
 /// A `RowMajorMatrix` representing the recovery matrix.
 #[must_use]
-pub fn recover_original_data_matrix(log_n:usize, indexes: &[usize], log_blowup_factor:usize) -> RowMajorMatrix<Mersenne31> {
+pub fn recover_original_data_matrix(log_n:usize, indexes: &[usize], log_blowup_factor:usize) -> RowMajorMatrix<Val> {
     let n = 1<<log_n;
 
-    let source_domain = CircleDomain::<Mersenne31>::standard(log_n + log_blowup_factor);
-    let target_domain = CircleDomain::<Mersenne31>::standard(log_n);
+    let source_domain = CircleDomain::<Val>::standard(log_n + log_blowup_factor);
+    let target_domain = CircleDomain::<Val>::standard(log_n);
 
     let all_points = source_domain.points().collect_vec();
     let source_points = indexes.iter().map(|&i| all_points[i]).collect_vec();
@@ -225,7 +226,7 @@ pub fn recover_original_data_matrix(log_n:usize, indexes: &[usize], log_blowup_f
 ///
 /// A row-major matrix containing the recovered original data.
 #[must_use]
-pub fn recover_original_data<M: Matrix<Mersenne31>>(shards_matrix: M, recover_matrix:&RowMajorMatrix<Mersenne31>) -> RowMajorMatrix<Mersenne31> {
+pub fn recover_original_data<M: Matrix<Val>>(shards_matrix: M, recover_matrix:&RowMajorMatrix<Val>) -> RowMajorMatrix<Val> {
     multiply_matrices(recover_matrix, &shards_matrix.to_row_major_matrix()).transpose()
 }
 
@@ -244,7 +245,7 @@ mod tests {
         let log_dimension = 6;
         let subcoset_index = 2;
 
-        let target_domain = CircleDomain::<Mersenne31>::standard(log_dimension + log_blowup_factor);
+        let target_domain = CircleDomain::<Val>::standard(log_dimension + log_blowup_factor);
         let subcoset_domain = compute_subdomain(subcoset_index, log_blowup_factor, log_dimension);
 
         let all_points = target_domain.points().collect_vec();
@@ -266,7 +267,7 @@ mod tests {
         let log_dimension = 4;
         let log_height = 2;
 
-        let original_data = RowMajorMatrix::<Mersenne31>::rand(&mut rng, 1 << log_height, 1 << log_dimension);
+        let original_data = RowMajorMatrix::<Val>::rand(&mut rng, 1 << log_height, 1 << log_dimension);
         let subcoset_index = rng.gen_range(0..(1 << log_blowup_factor));
 
         let (_, shards) = compute_commitment(original_data.clone(), log_blowup_factor);
@@ -292,7 +293,7 @@ mod tests {
         let log_dimension = 4;
         let log_height = 5;
 
-        let original_data = RowMajorMatrix::<Mersenne31>::rand(&mut rng, 1 << log_height, 1 << log_dimension);
+        let original_data = RowMajorMatrix::<Val>::rand(&mut rng, 1 << log_height, 1 << log_dimension);
         
         let shards_indexes = (0..(1<<(log_blowup_factor + log_dimension))).choose_multiple(&mut rng, 1<<log_dimension);
 
@@ -322,10 +323,10 @@ mod tests {
         let log_height = 5;
         let subdomain_index = 2;
 
-        let source_data = RowMajorMatrix::<Mersenne31>::rand(&mut rng, 1 << log_height, 1 << log_width);
+        let source_data = RowMajorMatrix::<Val>::rand(&mut rng, 1 << log_height, 1 << log_width);
 
-        let source_domain = CircleDomain::<Mersenne31>::standard(log_height);
-        let expanded_domain = CircleDomain::<Mersenne31>::standard(log_height + log_blowup_factor);
+        let source_domain = CircleDomain::<Val>::standard(log_height);
+        let expanded_domain = CircleDomain::<Val>::standard(log_height + log_blowup_factor);
         let subcoset_domain = compute_subdomain(subdomain_index, log_blowup_factor, log_height);
 
         let expanded_data = CircleEvaluations::from_natural_order(source_domain, source_data.clone())

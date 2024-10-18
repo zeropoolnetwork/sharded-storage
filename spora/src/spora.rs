@@ -1,7 +1,8 @@
-use primitives::poseidon2_hash;
+use primitives::{POSEIDON2_HASH};
 use p3_maybe_rayon::prelude::*;
 
-use primitives::{Poseidon2M31Challenger, POSEIDON2_M31_PERM};
+use primitives::{Poseidon2Challenger, POSEIDON2_PERM};
+use p3_symmetric::CryptographicHasher;
 
 use p3_field::PrimeField32;
 use p3_challenger::{CanObserve, CanSampleBits};
@@ -26,7 +27,7 @@ pub struct SPoRAConfig {
 
 
 // TODO: it is suboptimal. Taking only half of the bits to reduce bias
-fn sample_index(challenger: &mut Poseidon2M31Challenger, log_size:usize) -> u128 {
+fn sample_index(challenger: &mut Poseidon2Challenger, log_size:usize) -> u128 {
     assert!(log_size <= 128);
     const BITS_PER_SAMPLE : usize = 16;
     let mut res = 0;
@@ -46,7 +47,7 @@ fn sample_index(challenger: &mut Poseidon2M31Challenger, log_size:usize) -> u128
 
 // Return finding complexity
 fn spora_with_nonce(config:&SPoRAConfig, nonce:Nonce, storage: &impl UnstructuredStorageReader) -> usize {
-    let mut challenger = Poseidon2M31Challenger::new(POSEIDON2_M31_PERM.clone());
+    let mut challenger = Poseidon2Challenger::new(POSEIDON2_PERM.clone());
 
     challenger.observe(nonce.as_mersenne_31_word());
 
@@ -56,7 +57,7 @@ fn spora_with_nonce(config:&SPoRAConfig, nonce:Nonce, storage: &impl Unstructure
             storage.read(index)
         }).collect_vec();
 
-    let hash = poseidon2_hash(&values);
+    let hash = POSEIDON2_HASH.hash_iter(values);
 
 
     hash[0].as_canonical_u32().leading_zeros() as usize - 1

@@ -1,9 +1,9 @@
-use p3_mersenne_31::Mersenne31;
+use primitives::{POSEIDON2_HASH, Val};
 
-use primitives::poseidon2_hash;
+use p3_symmetric::CryptographicHasher;
 
 pub trait UnstructuredStorageReader :Send + Sync {
-    fn read(&self, index: u128) -> Mersenne31;
+    fn read(&self, index: u128) -> Val;
     fn log_len(&self) -> usize;
 }
 
@@ -18,22 +18,22 @@ impl SimpleTestingStorageEmulator {
 }
 
 impl UnstructuredStorageReader for SimpleTestingStorageEmulator {
-    fn read(&self, index: u128) -> Mersenne31 {
+    fn read(&self, index: u128) -> Val {
         assert!(index < (1 << self.log_size));
         const BITS_PER_SAMPLE : usize = 16;
         const MASK : u32 = (1 << BITS_PER_SAMPLE) - 1;
         let parts = [
-            Mersenne31::new(index as u32 & MASK),
-            Mersenne31::new((index >> BITS_PER_SAMPLE) as u32 & MASK),
-            Mersenne31::new((index >> (2 * BITS_PER_SAMPLE)) as u32 & MASK),
-            Mersenne31::new((index >> (3 * BITS_PER_SAMPLE)) as u32 & MASK),
-            Mersenne31::new((index >> (4 * BITS_PER_SAMPLE)) as u32 & MASK),
-            Mersenne31::new((index >> (5 * BITS_PER_SAMPLE)) as u32 & MASK),
-            Mersenne31::new((index >> (6 * BITS_PER_SAMPLE)) as u32 & MASK),
-            Mersenne31::new((index >> (7 * BITS_PER_SAMPLE)) as u32 & MASK),
+            Val::new(index as u32 & MASK),
+            Val::new((index >> BITS_PER_SAMPLE) as u32 & MASK),
+            Val::new((index >> (2 * BITS_PER_SAMPLE)) as u32 & MASK),
+            Val::new((index >> (3 * BITS_PER_SAMPLE)) as u32 & MASK),
+            Val::new((index >> (4 * BITS_PER_SAMPLE)) as u32 & MASK),
+            Val::new((index >> (5 * BITS_PER_SAMPLE)) as u32 & MASK),
+            Val::new((index >> (6 * BITS_PER_SAMPLE)) as u32 & MASK),
+            Val::new((index >> (7 * BITS_PER_SAMPLE)) as u32 & MASK),
         ];
 
-        poseidon2_hash(&parts)[0]
+        POSEIDON2_HASH.hash_iter(parts)[0]
     }
 
     fn log_len(&self) -> usize {

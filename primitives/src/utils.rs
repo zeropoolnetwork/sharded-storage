@@ -1,5 +1,4 @@
-use p3_mersenne_31::Mersenne31;
-use p3_symmetric::{CryptographicHasher, CryptographicPermutation};
+use p3_symmetric::CryptographicPermutation;
 use p3_circle::CircleDomain;
 use p3_commit::Pcs;
 use alloc::vec::Vec;
@@ -11,7 +10,7 @@ use alloc::vec;
 use itertools::Itertools;
 use core::iter::Iterator;
 
-use crate::config::{POSEIDON2_M31_HASH, Challenge, Poseidon2M31Challenger, Poseidon2M31Pcs,pcs_config};
+use crate::config::{Challenge, Poseidon2Challenger, Poseidon2Pcs,pcs_config, Val};
 
 // Function to invert a square RowMajorMatrix
 pub fn invert_matrix<T: Field>(matrix: &RowMajorMatrix<T>) -> RowMajorMatrix<T> {
@@ -159,16 +158,12 @@ pub fn multiply_matrices<T:Field>(
 
 
 
-pub fn poseidon2_hash(input: &[Mersenne31]) -> [Mersenne31; 8] {
-    POSEIDON2_M31_HASH.hash_iter(input.iter().copied())
-}
-
-type PcsCommitment = <Poseidon2M31Pcs as Pcs::<Challenge,Poseidon2M31Challenger>>::Commitment;
-type PcsProverData = <Poseidon2M31Pcs as Pcs::<Challenge,Poseidon2M31Challenger>>::ProverData;
+type PcsCommitment = <Poseidon2Pcs as Pcs::<Challenge,Poseidon2Challenger>>::Commitment;
+type PcsProverData = <Poseidon2Pcs as Pcs::<Challenge,Poseidon2Challenger>>::ProverData;
 
 
-pub fn pcs_commit(data: Vec<(CircleDomain<Mersenne31>,RowMajorMatrix<Mersenne31>)>) -> (PcsCommitment, PcsProverData)  {
-    Pcs::<Challenge,Poseidon2M31Challenger>::commit(&pcs_config(), data)
+pub fn pcs_commit(data: Vec<(CircleDomain<Val>,RowMajorMatrix<Val>)>) -> (PcsCommitment, PcsProverData)  {
+    Pcs::<Challenge,Poseidon2Challenger>::commit(&pcs_config(), data)
 }
 
 #[derive(Clone, Debug)]
@@ -235,7 +230,6 @@ where T:Default+Copy, P: CryptographicPermutation<[T;WIDTH]>
 mod tests {
     use super::*;
     use rand::thread_rng;
-    use p3_mersenne_31::Mersenne31;
 
 
     // Helper function to check if a matrix is an identity matrix
@@ -269,7 +263,7 @@ mod tests {
         let size = 64;
 
         // Generate a random non-singular matrix
-        let matrix = RowMajorMatrix::<Mersenne31>::rand(&mut rng, size, size);
+        let matrix = RowMajorMatrix::<Val>::rand(&mut rng, size, size);
 
         // Invert the matrix
         let inverse = invert_matrix(&matrix);
