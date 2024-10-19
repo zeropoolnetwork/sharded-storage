@@ -27,8 +27,8 @@ pub struct SPoRAConfig {
 
 
 // TODO: it is suboptimal. Taking only half of the bits to reduce bias
-fn sample_index(challenger: &mut Poseidon2Challenger, log_size:usize) -> u128 {
-    assert!(log_size <= 128);
+fn sample_index(challenger: &mut Poseidon2Challenger, log_size:usize) -> u64 {
+    assert!(log_size <= 64);
     const BITS_PER_SAMPLE : usize = 16;
     let mut res = 0;
     let mut rem_bits = log_size;
@@ -36,7 +36,7 @@ fn sample_index(challenger: &mut Poseidon2Challenger, log_size:usize) -> u128 {
     while rem_bits > 0 {
         let len_bits = rem_bits.min(BITS_PER_SAMPLE);
         let bits = challenger.sample_bits(len_bits);
-        res = (res << len_bits) + bits as u128;
+        res = (res << len_bits) + bits as u64;
         rem_bits -= len_bits;
     }
     res
