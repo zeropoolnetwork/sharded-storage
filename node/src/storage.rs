@@ -19,7 +19,7 @@ impl Storage {
         })
     }
 
-    pub async fn write(&self, data: Vec<Mersenne31>, index: usize) -> Result<()> {
+    pub async fn write(&self, index: usize, data: &[Mersenne31]) -> Result<()> {
         let mut file = tokio::fs::OpenOptions::new()
             .write(true)
             .create(true)
@@ -34,7 +34,7 @@ impl Storage {
 
     pub async fn read(&self, index: usize) -> Result<Vec<Mersenne31>> {
         if !self.path.join(index.to_string()).exists() {
-            return Ok(random_vec(self.config.sector_capacity(), index));
+            return Ok(random_vec(self.config.cluster_capacity(), index));
         }
 
         let mut file = tokio::fs::File::open(self.path.join(index.to_string())).await?;
@@ -42,6 +42,19 @@ impl Storage {
         file.read_to_end(&mut data).await?;
 
         let data = bincode::deserialize(&data)?;
+
+        Ok(data)
+    }
+
+    pub async fn read_bin(&self, index: usize) -> Result<Vec<u8>> {
+        if !self.path.join(index.to_string()).exists() {
+            let elements = bincode::serialize(&random_vec(self.config.cluster_capacity(), index))?;
+            return Ok(elements);
+        }
+
+        let mut file = tokio::fs::File::open(self.path.join(index.to_string())).await?;
+        let mut data = Vec::new();
+        file.read_to_end(&mut data).await?;
 
         Ok(data)
     }

@@ -14,15 +14,6 @@ pub struct StorageConfig {
 }
 
 impl StorageConfig {
-    pub fn dev() -> Self {
-        Self {
-            n: 16384,
-            m: 8,
-            q: 32,
-            k: 2097152,
-        }
-    }
-
     pub fn prod() -> Self {
         Self {
             n: 16384,
@@ -32,15 +23,24 @@ impl StorageConfig {
         }
     }
 
-    pub fn num_chunks(&self) -> usize {
-        self.q / self.m
+    pub fn dev() -> Self {
+        Self {
+            n: 65536,
+            m: 4,
+            q: 16,
+            k: 2097152, // FIXME: incorrect, but doesn't matter for now
+        }
+    }
+    
+    pub fn num_clusters(&self) -> usize {
+        self.q
     }
 
-    pub fn sector_capacity(&self) -> usize {
+    pub fn cluster_capacity(&self) -> usize {
         self.n * self.m
     }
 
-    pub fn sector_capacity_bytes(&self) -> usize {
+    pub fn cluster_capacity_bytes(&self) -> usize {
         self.n * self.m * 30 / 8
     }
 }

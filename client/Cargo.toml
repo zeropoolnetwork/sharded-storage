@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-reqwest = { version = "0.12.5", features = ["multipart", "json"] }
-clap = { version = "4.5.15", features = ["derive"] }
-serde_json = "1.0.124"
-tokio = "1.39.2"
+reqwest = { workspace = true, features = ["multipart", "json"] }
+clap = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
 zeropool-sharded-storage-common = { path = "../common" }
-serde = "1.0.207"
-bincode = "1.3.3"
+serde = { workspace = true }
+bincode = { workspace = true }
 m31jubjub = { workspace = true }
 rand = { workspace = true }

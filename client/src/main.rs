@@ -81,7 +81,7 @@ async fn upload_file(
     let config = StorageConfig::dev(); // FIXME
     let file_data = fs::read(&file_path)?;
 
-    if file_data.len() > storage_config.sector_capacity_bytes() {
+    if file_data.len() > storage_config.cluster_capacity_bytes() {
         return Err("File is too large".into());
     }
 
@@ -105,22 +105,22 @@ async fn upload_file(
     let encoded_file = encode(&file_data)
         .into_iter()
         .chain((0..).map(|_| Field::new(0)))
-        .take(config.sector_capacity())
+        .take(config.cluster_capacity())
         .collect::<Vec<_>>();
 
     // TODO: Limit to one sector for now
 
     // FIXME: commitment
 
-    let sector_shards = encoded_file.chunks(storage_config.num_chunks());
+    let clusters = encoded_file.chunks(storage_config.num_clusters());
     let sig_params = M31JubJubSigParams::default();
     let private_key = priv_key::<M31JubJubSigParams>(mnemonic, KEY_PATH).unwrap();
     let public_key = pub_key::<M31JubJubSigParams>(mnemonic, KEY_PATH).unwrap();
     let signature = sig_params.sign(&encoded_file, private_key);
 
     // TODO: Proper sector allocation/reservation
-    for (i, shard) in sector_shards.enumerate() {
-        let shard_data = bincode::serialize(shard)?;
+    for (i, cluster) in clusters.enumerate() {
+        let shard_data = bincode::serialize(cluster)?;
         let node_url = nodes[sector + i]["address"].as_str().unwrap();
         upload_sector(&client, sector + i, node_url, shard_data).await?;
     }

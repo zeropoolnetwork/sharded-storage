@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zpss-node
+spec:
+  replicas: 16
+  serviceName: "zpss-node"
+  selector:
+    matchLabels:
+      app: zpss-node
+  template:
+    metadata:
+      labels:
+        app: zpss-node
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: zpss-node
+                    operator: In
+                    values:
+                      - "1"
+                      - "2"
+                      - "3"
+                      - "4"
+                      - "5"
+                      - "6"
+                      - "7"
+                      - "8"
+                      - "9"
+                      - "10"
+                      - "11"
+                      - "12"
+                      - "13"
+                      - "14"
+                      - "15"
+                      - "16"
+      containers:
+        - name: zpss-node
+          image: zpss-node:latest
+          ports:
+            - containerPort: 8080
