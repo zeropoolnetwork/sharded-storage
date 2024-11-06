@@ -597,6 +597,7 @@ dependencies = [
  "p3-field",
  "p3-matrix",
  "p3-maybe-rayon",
+ "p3-symmetric",
  "p3-util",
  "primitives",
  "rand",
