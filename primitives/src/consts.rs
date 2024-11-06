@@ -44,3 +44,21 @@ Val::new(1868136170), Val::new(1684664724), Val::new(983679023), Val::new(189135
     Val::new(272841724), Val::new(1160904394), Val::new(1037633668), Val::new(1955898504),
     Val::new(892602345), Val::new(2104815485)
 ];
+
+
+// development configuration
+
+pub const STORAGE_THRESHOLD: usize = 4;
+pub const BLOWUP_FACTOR: usize = 4;
+
+pub const NUM_NODES: usize = STORAGE_THRESHOLD * BLOWUP_FACTOR;
+
+pub const LOG_CLUSTER_SIZE: usize = 20;
+pub const LOG_FRAGMENT_SIZE: usize = 22;
+pub const LOG_SEGMENT_SIZE: usize = 28;
+pub const LOG_VOLUME_SIZE: usize = 37;
+
+pub const CLUSTER_SIZE: u64 = 1 << LOG_CLUSTER_SIZE;
+pub const FRAGMENT_SIZE: u64 = 1 << LOG_FRAGMENT_SIZE;
+pub const SEGMENT_SIZE: u64 = 1 << LOG_SEGMENT_SIZE;
+pub const VOLUME_SIZE: u64 = 1 << LOG_VOLUME_SIZE;

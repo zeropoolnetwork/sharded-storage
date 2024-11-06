@@ -10,7 +10,7 @@ use alloc::vec;
 use itertools::Itertools;
 use core::iter::Iterator;
 
-use crate::config::{Challenge, Poseidon2Challenger, Poseidon2Pcs,pcs_config, Val};
+use crate::config::{Challenge, Poseidon2Challenger, Poseidon2Pcs, pcs_config, Val};
 
 // Function to invert a square RowMajorMatrix
 pub fn invert_matrix<T: Field>(matrix: &RowMajorMatrix<T>) -> RowMajorMatrix<T> {
@@ -201,9 +201,12 @@ impl <'a, T, P, const WIDTH: usize, const OUT: usize> StreamCipherIterator<'a, T
 where T: Default+Copy
 {
     pub fn new(cipher: &'a StreamCipher<T,P,WIDTH,OUT>, state: &[T]) -> Self {
+        assert!(state.len() <= WIDTH, "State length must be less than or equal to WIDTH");
+        let mut state_array = [T::default(); WIDTH];
+        state_array[..state.len()].copy_from_slice(state);
         Self {
             cipher,
-            state: state.try_into().unwrap(),
+            state: state_array,
             index:OUT
         }
     }   
@@ -229,6 +232,7 @@ where T:Default+Copy, P: CryptographicPermutation<[T;WIDTH]>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::{POSEIDON2_PERM, M31StreamCipher};
     use rand::thread_rng;
 
 
@@ -276,6 +280,36 @@ mod tests {
             is_identity_matrix(&product),
             "Matrix * Inverse is not identity"
         );
+    }
+
+    #[test]
+    fn test_stream_cipher_iterator() {
+        // Create test permutation, similar to POSEIDON2_PERM
+        let permutation = POSEIDON2_PERM.clone();
+        
+        // Create StreamCipher with same type as M31StreamCipher
+        let stream = M31StreamCipher::new(permutation);
+        
+        // Create test seed similar to Hash type
+        let test_seed = [Val::new(1), Val::new(2), Val::new(3), Val::new(4)];
+        
+        // Get first 10 values from iterator
+        let values: Vec<Val> = stream.cipher(&test_seed)
+            .take(10)
+            .collect_vec();
+        
+        // Verify iterator produces correct number of values
+        assert_eq!(values.len(), 10);
+        
+        // Check that values are non-zero (as this is a cryptographic generator)
+        for value in values {
+            assert!(!value.is_zero());
+        }
+        
+        // Verify that two consecutive calls produce identical results
+        let first_run: Vec<Val> = stream.cipher(&test_seed).take(5).collect_vec();
+        let second_run: Vec<Val> = stream.cipher(&test_seed).take(5).collect_vec();
+        assert_eq!(first_run, second_run);
     }
 }
 

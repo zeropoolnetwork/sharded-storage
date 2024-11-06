@@ -13,7 +13,7 @@ use p3_uni_stark::StarkConfig;
 use p3_circle::CirclePcs;
 use p3_fri::FriConfig;
 use lazy_static::lazy_static;
-
+use p3_symmetric::CryptographicHasher;
 use core::marker::PhantomData;
 
 use crate::utils::StreamCipher;
@@ -41,6 +41,8 @@ pub type Poseidon2StarkConfig = StarkConfig<Poseidon2Pcs, Challenge, Poseidon2Ch
 pub type Hash = p3_symmetric::Hash<Val, Val, 8>;
 
 pub type M31StreamCipher = StreamCipher<Val, Poseidon2Perm, 16, 8>;
+
+
 
 lazy_static!{
     pub static ref POSEIDON2_PERM: Poseidon2Perm = poseidon2_perm();
@@ -102,5 +104,17 @@ pub fn pcs_config() -> Poseidon2Pcs {
 
 pub fn stark_config() -> Poseidon2StarkConfig {
     Poseidon2StarkConfig::new(pcs_config())
+}
+
+pub fn poseidon2_hash_iter(iter:impl IntoIterator<Item=Val>) -> Hash {
+    POSEIDON2_HASH.hash_iter(iter).into()
+}
+
+pub fn poseidon2_hash_slice(slice:impl AsRef<[Val]>) -> Hash {
+    POSEIDON2_HASH.hash_slice(slice.as_ref()).into()
+}
+
+pub fn poseidon2_hash_item(item:Val) -> Hash {
+    POSEIDON2_HASH.hash_item(item).into()
 }
 
