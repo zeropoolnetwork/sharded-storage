@@ -4,10 +4,13 @@ use itertools::{Itertools, iterate};
 use p3_challenger::{CanObserve, FieldChallenger};
 use p3_circle::{CircleDomain, CircleEvaluations, Point};
 use p3_commit::Mmcs;
+use p3_field::AbstractExtensionField;
 use p3_field::{PackedValue, extension::ComplexExtendable};
 use p3_matrix::{Matrix, dense::RowMajorMatrix};
 use p3_maybe_rayon::prelude::*;
 use p3_util::log2_strict_usize;
+use p3_symmetric::CryptographicHasher;
+
 use primitives::*;
 
 use primitives::Val;
@@ -17,10 +20,27 @@ pub struct OptimisticCorrectableCommitment {
     /// PCS commitment hash
     pub pcs_commitment_hash: Hash,
     /// Root hash of all shards
-    pub shards_root_hash: Hash,
+    pub chi: Challenge,
     /// Opening evaluations at challenge chi
     pub opening_evaluations: Vec<Challenge>,
 }
+
+
+impl OptimisticCorrectableCommitment {
+
+    /// Computes the hash of the commitment.
+    pub fn hash(&self) -> Hash {
+        let openings_evaluations_hash: Hash = POSEIDON2_HASH.hash_iter(self.opening_evaluations.iter()
+            .flat_map(|chi| chi.as_base_slice().iter()).copied()).into();
+        
+        let metadata_hash: Hash = POSEIDON2_HASH.hash_iter(self.chi.as_base_slice().iter()
+            .chain(openings_evaluations_hash.as_ref().iter()).cloned()).into();
+        
+        POSEIDON2_HASH.hash_iter(self.pcs_commitment_hash.as_ref().iter()
+        .chain(metadata_hash.as_ref().iter()).cloned()).into()
+    }
+}
+
 
 /// Returns a subdomain for efficient data recovery.
 ///
@@ -129,7 +149,7 @@ pub fn compute_commitment<M: Matrix<Val>>(data_matrix: M, log_blowup_factor: usi
     (
         OptimisticCorrectableCommitment {
             pcs_commitment_hash: pcs_commitment,
-            shards_root_hash: root_shards_hash,
+            chi: challenge_chi,
             opening_evaluations: evaluations,
         },
         shards,
@@ -197,6 +217,12 @@ fn lagrange_denom<F:ComplexExtendable>(domain:&CircleDomain<F>, p:Point<F>, x: P
 /// A `RowMajorMatrix` representing the recovery matrix.
 #[must_use]
 pub fn recover_original_data_matrix(log_n:usize, indexes: &[usize], log_blowup_factor:usize) -> RowMajorMatrix<Val> {
+    
+    // unique indexes check
+    let unique_indexes = indexes.iter().unique().collect_vec();
+    assert_eq!(unique_indexes.len(), indexes.len(), "Indexes must be unique");
+
+
     let n = 1<<log_n;
 
     let source_domain = CircleDomain::<Val>::standard(log_n + log_blowup_factor);
@@ -219,7 +245,7 @@ pub fn recover_original_data_matrix(log_n:usize, indexes: &[usize], log_blowup_f
 ///
 /// # Arguments
 ///
-/// * `shards_matrix` - The matrix of shards.
+/// * `shards_matrix` - The matrix of shards where each row corresponds to a shard.
 /// * `recover_matrix` - The recovery matrix used to reconstruct the original data.
 ///
 /// # Returns
