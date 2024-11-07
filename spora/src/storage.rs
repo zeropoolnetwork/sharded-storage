@@ -1,6 +1,5 @@
-use primitives::{POSEIDON2_HASH, Val};
+use primitives::{Val, poseidon2_hash_slice};
 
-use p3_symmetric::CryptographicHasher;
 
 pub trait UnstructuredStorageReader :Send + Sync {
     fn read(&self, index: u64) -> Val;
@@ -29,7 +28,7 @@ impl UnstructuredStorageReader for SimpleTestingStorageEmulator {
             Val::new((index >> (3 * BITS_PER_SAMPLE)) as u32 & MASK)
         ];
 
-        POSEIDON2_HASH.hash_iter(parts)[0]
+        poseidon2_hash_slice(&parts).as_ref()[0]
     }
 
     fn log_len(&self) -> usize {

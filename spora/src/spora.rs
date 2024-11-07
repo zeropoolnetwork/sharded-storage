@@ -1,8 +1,6 @@
-use primitives::{POSEIDON2_HASH};
 use p3_maybe_rayon::prelude::*;
 
-use primitives::{Poseidon2Challenger, POSEIDON2_PERM};
-use p3_symmetric::CryptographicHasher;
+use primitives::{Poseidon2Challenger, POSEIDON2_PERM, poseidon2_hash_slice};
 
 use p3_field::PrimeField32;
 use p3_challenger::{CanObserve, CanSampleBits};
@@ -57,10 +55,10 @@ fn spora_with_nonce(config:&SPoRAConfig, nonce:Nonce, storage: &impl Unstructure
             storage.read(index)
         }).collect_vec();
 
-    let hash = POSEIDON2_HASH.hash_iter(values);
+    let hash = poseidon2_hash_slice(&values);
 
 
-    hash[0].as_canonical_u32().leading_zeros() as usize - 1
+    hash.as_ref()[0].as_canonical_u32().leading_zeros() as usize - 1
 }
 
 pub fn spora(config:&SPoRAConfig, storage: &impl UnstructuredStorageReader) -> Vec<(Nonce,usize)> {
