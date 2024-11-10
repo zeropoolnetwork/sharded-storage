@@ -1,0 +1,21 @@
+[package]
+name = "sealing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+p3-circle = {workspace = true}
+p3-matrix = {workspace = true}
+p3-symmetric = {workspace = true}
+
+itertools = {workspace = true}
+
+primitives = {path = "../primitives"}
+
+[dev-dependencies]
+p3-maybe-rayon = {workspace = true}
+p3-commit = {workspace = true}
+p3-field = {workspace = true}
+bincode = {workspace = true}
+indicatif = "0.17"
+humantime = "2.1.0"

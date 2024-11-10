@@ -19,7 +19,7 @@ serde_json = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true }
 bincode = { workspace = true }
-m31jubjub = { workspace = true }
+#m31jubjub = { workspace = true }
 base64 = { workspace = true }
 
 zeropool-sharded-storage-common = { path = "../common" }

@@ -1,14 +1,16 @@
 [workspace]
 resolver = "2"
 members = [
+    "primitives",
+    "sealing",
+    "shards",
+    "spora",
+    "storage",
     "node",
     "common",
     "validator",
     "client",
     "contract-mock",
-    "tests",
-    "primitives",
-    "shards",
 ]
 
 
@@ -37,6 +39,7 @@ bincode = "1.3"
 itertools = "0.13.0"
 libc-print = "0.1.22"
 sha3 = "0.10"
+
 color-eyre = "0.6.3"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
@@ -46,5 +49,5 @@ reqwest = "0.12.9"
 clap = "4.5.19"
 dotenv = "0.15.0"
 tokio = "1.40.0"
-m31jubjub = { git = "https://github.com/zeropoolnetwork/m31jubjub.git" }
 base64 = "0.22.1"
+

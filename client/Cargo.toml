@@ -11,5 +11,5 @@ tokio = { workspace = true, features = ["full"] }
 zeropool-sharded-storage-common = { path = "../common" }
 serde = { workspace = true }
 bincode = { workspace = true }
-m31jubjub = { workspace = true }
+#m31jubjub = { workspace = true }
 rand = { workspace = true }
