@@ -10,8 +10,6 @@ use crate::curve::{CurveParams, PointProjective};
 use crate::m31::{Fq, FqBase, Fs, fq_new_from_raw};
 use crate::flatten::ComplexExtensionFlattener;
 
-use primitives::poseidon2_m31_hash;
-
 type Perm = Poseidon2<FqBase, Poseidon2ExternalMatrixGeneral, DiffusionMatrixMersenne31, 16, 5>;
 type MyHash = PaddingFreeSponge<Perm, 16, 8, 8>;
 
@@ -47,8 +45,16 @@ impl M31JubJubSigParams {
 }
 
 impl Default for M31JubJubSigParams {
-    fn default() -> Self {    
-        M31JubJubSigParams::new(poseidon2_m31_hash())
+    fn default() -> Self {
+        let perm = Perm::new(
+            super::consts::POSEIDON2_W16_D5_ROUNDS_F,
+            super::consts::POSEIDON2_W16_D5_EXTERNAL_CONSTANTS.to_vec(),
+            Poseidon2ExternalMatrixGeneral,
+            super::consts::POSEIDON2_W16_D5_ROUNDS_P,
+            super::consts::POSEIDON2_W16_D5_INTERNAL_CONSTANTS.to_vec(),
+            DiffusionMatrixMersenne31,
+        );
+        M31JubJubSigParams::new(MyHash::new(perm))
     }
 }
 

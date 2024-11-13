@@ -10,9 +10,6 @@ p3-field = {git="https://github.com/zeropoolnetwork/Plonky3.git", branch="fork/f
 p3-poseidon2 = {git="https://github.com/zeropoolnetwork/Plonky3.git", branch="fork/feature/cfft-symmetric-compatibility"}
 p3-symmetric = {git="https://github.com/zeropoolnetwork/Plonky3.git", branch="fork/feature/cfft-symmetric-compatibility"}
 
-
-primitives = {git="https://github.com/zeropoolnetwork/sharded-storage.git", branch="main"}
-
 ark-ff = "0.4.2"
 num-bigint = "0.4.6"
 sha3 = "0.10.8"
