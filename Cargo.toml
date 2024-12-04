@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [ "primitives", "sealing","shards"
-, "spora", "storage"]
+, "spora", "snapshotdb"]
 
 
 [workspace.dependencies]
