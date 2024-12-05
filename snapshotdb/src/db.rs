@@ -21,7 +21,7 @@
 use hashbrown::HashMap;
 use tokio::sync::{RwLock, Mutex};
 use tokio::fs::File;
-use tokio::io::{AsyncSeekExt, AsyncWriteExt, AsyncReadExt, SeekFrom};
+use tokio::io::AsyncWriteExt;
 use std::io::Result;
 use std::path::Path;
 use std::sync::atomic::AtomicUsize;
@@ -30,7 +30,7 @@ use std::sync::Arc;
 
 use crate::allocator::{Allocator, FREE_SLOTS_MIN_RESERVE};
 use crate::sledwrapper::{OffsetTableEntry, SledWrapper, SledKey};
-use crate::utils::{custom_sync_range, mutex_vec_values, to_mutex_vec};
+use crate::utils::{custom_sync_range, mutex_vec_values, to_mutex_vec, read_exact_at, write_all_at};
 
 /// Configuration for the SnapshotDb instance
 #[derive(Debug, Clone, Copy)]
@@ -138,8 +138,8 @@ impl SnapshotDb {
 
         let raw_offset = slot as u64 * self.config.cluster_size as u64;
     
-        storage.seek(SeekFrom::Start(raw_offset)).await?;
-        storage.write_all(data).await?;
+        write_all_at(self.storage.clone(), data, raw_offset).await?;
+
         storage.flush().await?;
 
         custom_sync_range(self.storage.clone(), raw_offset, data.len() as u64).await?;
@@ -206,10 +206,10 @@ impl SnapshotDb {
     pub async fn read_exact(&self, snapshot: usize, cluster_id: usize, from:usize, len:usize) -> Result<Vec<u8>> {
         let offset_table = self.offset_table.read().await;
         let offset = offset_table.inner.get(&snapshot).unwrap().get(cluster_id).unwrap().lock().await.offset as usize;
-        let mut storage = File::from_std(self.storage.try_clone()?);
-        storage.seek(SeekFrom::Start(offset as u64 * self.config.cluster_size as u64 + from as u64)).await.unwrap();
-        let mut data = vec![0; len];
-        storage.read_exact(&mut data).await?;
+        //let mut storage = File::from_std(self.storage.try_clone()?);
+        let raw_offset = offset as u64 * self.config.cluster_size as u64 + from as u64;
+        let data = read_exact_at(self.storage.clone(), raw_offset, len).await?;
+
         Ok(data)
     }
 

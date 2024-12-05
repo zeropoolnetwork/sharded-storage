@@ -2,6 +2,8 @@ use std::io::Result;
 use std::fs::File as StdFile;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+#[cfg(target_family = "unix")]
+use std::os::unix::prelude::FileExt;
 
 pub async fn asyncify<F, T>(f: F) -> Result<T>
 where
@@ -44,11 +46,42 @@ pub async fn custom_sync_range(file: Arc<StdFile>, offset: u64, len: u64) -> std
     Ok(())
 }
 
-
 pub fn mutex_vec_values<T: Clone>(vec: Vec<Mutex<T>>) -> Vec<T> {
     vec.into_iter().map(|mutex| mutex.into_inner()).collect()
 }
 
 pub fn to_mutex_vec<T:Clone>(items: &[T]) -> Vec<Mutex<T>> {
     items.iter().map(|item| Mutex::new(item.clone())).collect()
+}
+
+pub async fn read_exact_at(file: Arc<StdFile>, offset: u64, len: usize) -> Result<Vec<u8>> {
+    #[cfg(target_family = "unix")]
+    {
+        asyncify(move || {
+            let mut buf = vec![0u8; len];
+            file.read_exact_at(&mut buf, offset)?;
+            Ok(buf)
+        }).await
+    }
+
+    #[cfg(not(target_family = "unix"))]
+    {
+        unimplemented!("read_exact_at is only implemented for Unix systems")
+    }
+}
+
+pub async fn write_all_at(file: Arc<StdFile>, buf: &[u8], offset: u64) -> Result<()> {
+    #[cfg(target_family = "unix")]
+    {
+        let buf = buf.to_vec();
+        asyncify(move || {
+            file.write_all_at(&buf, offset)?;
+            Ok(())
+        }).await
+    }
+
+    #[cfg(not(target_family = "unix"))]
+    {
+        unimplemented!("write_at is only implemented for Unix systems")
+    }
 }
