@@ -31,16 +31,20 @@ impl StorageConfig {
             k: 2097152, // FIXME: incorrect, but doesn't matter for now
         }
     }
-    
+
     pub fn num_clusters(&self) -> usize {
         self.q
     }
 
-    pub fn cluster_capacity(&self) -> usize {
+    pub fn cluster_size(&self) -> usize {
         self.n * self.m
     }
 
-    pub fn cluster_capacity_bytes(&self) -> usize {
+    pub fn cluster_size_bytes(&self) -> usize {
         self.n * self.m * 30 / 8
+    }
+
+    pub fn log_blowup_factor(&self) -> usize {
+        (self.q / self.m).ilog2() as usize
     }
 }

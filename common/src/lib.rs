@@ -5,6 +5,7 @@ use crate::config::StorageConfig;
 
 pub mod config;
 pub mod contract;
+pub mod crypto;
 pub mod encode;
 
 pub type Field = Mersenne31;

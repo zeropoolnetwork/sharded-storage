@@ -1,6 +1,13 @@
 use std::{fs, path::PathBuf};
 
 use clap::{Parser, Subcommand};
+use color_eyre::Result;
+use common::{
+    // blowup,
+    config::StorageConfig,
+    encode::{decode, encode},
+    Field,
+};
 use m31jubjub::{
     eddsa::SigParams,
     hdwallet::{priv_key, pub_key},
@@ -11,12 +18,6 @@ use reqwest::multipart;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::io::AsyncReadExt;
-use zeropool_sharded_storage_common::{
-    // blowup,
-    config::StorageConfig,
-    encode::{decode, encode},
-    Field,
-};
 
 const KEY_PATH: &str = "m/42/0'/1337'"; // FIXME
 
@@ -51,7 +52,9 @@ enum Commands {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
+    color_eyre::install()?;
+
     let cli = Cli::parse();
     let storage_config = serde_json::from_str(&fs::read_to_string("storage_config.json")?)?;
 
@@ -77,11 +80,11 @@ async fn upload_file(
     storage_config: &StorageConfig,
     sector: usize,
     mnemonic: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let config = StorageConfig::dev(); // FIXME
+) -> Result<()> {
+    let config = StorageConfig::dev();
     let file_data = fs::read(&file_path)?;
 
-    if file_data.len() > storage_config.cluster_capacity_bytes() {
+    if file_data.len() > storage_config.cluster_size_bytes() {
         return Err("File is too large".into());
     }
 
@@ -105,7 +108,7 @@ async fn upload_file(
     let encoded_file = encode(&file_data)
         .into_iter()
         .chain((0..).map(|_| Field::new(0)))
-        .take(config.cluster_capacity())
+        .take(config.cluster_size())
         .collect::<Vec<_>>();
 
     // TODO: Limit to one sector for now
@@ -134,7 +137,7 @@ async fn upload_sector(
     index: usize,
     node_url: &str,
     data: Vec<u8>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let part = multipart::Part::bytes(data)
         .file_name(index.to_string())
         .mime_str("application/octet-stream")?;
@@ -159,7 +162,7 @@ async fn download_sector(
     client: &reqwest::Client,
     index: usize,
     node_url: &str,
-) -> Result<Vec<Field>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Field>> {
     let response = client
         .get(&format!("{}/download/{}", node_url, index))
         .send()
@@ -180,7 +183,7 @@ async fn download_file(
     output: PathBuf,
     node: &str,
     storage_config: &StorageConfig,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let client = reqwest::Client::new();
 
     let nodes_response: Value = client
@@ -223,8 +226,7 @@ async fn download_file(
             .flatten()
             .copied()
             .collect::<Vec<Field>>();
-        let reconstructed_sector =
-            zeropool_sharded_storage_common::reconstruct(&values, &storage_config);
+        let reconstructed_sector = common::reconstruct(&values, &storage_config);
         downloaded_data.extend_from_slice(&reconstructed_sector);
 
         sector_index += 1;

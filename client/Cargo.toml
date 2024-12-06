@@ -1,15 +1,16 @@
 [package]
-name = "zeropool-sharded-storage-client"
+name = "client"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+color-eyre = { workspace = true }
 reqwest = { workspace = true, features = ["multipart", "json"] }
 clap = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-zeropool-sharded-storage-common = { path = "../common" }
+common = { path = "../common" }
 serde = { workspace = true }
 bincode = { workspace = true }
-#m31jubjub = { workspace = true }
+m31jubjub = { workspace = true }
 rand = { workspace = true }

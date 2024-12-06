@@ -12,24 +12,23 @@ COPY sealing sealing
 COPY spora spora
 COPY shards shards
 COPY storage storage
-# FIXME: `cargo new` for each one of these:
+
 COPY validator validator
 COPY contract-mock contract-mock
-COPY client client
 
-WORKDIR /app/node
-RUN USER=root cargo init --name node
+WORKDIR /app/validator
+RUN USER=root cargo init --name validator
 RUN cargo build --release
 
 # Build
 RUN rm src/*.rs
-RUN /bin/bash -c 'rm ../target/release/deps/node*'
-COPY node .
+RUN /bin/bash -c 'rm ./target/release/deps/validator*'
+COPY validator/src ./src
 RUN cargo build --release
 
 # Final image
 FROM rustlang/rust:nightly
 
 WORKDIR /app
-COPY --from=build /app/target/release/node /app/node
-CMD /app/node
+COPY --from=build /app/target/release/validator /app/validator
+CMD /app/validator

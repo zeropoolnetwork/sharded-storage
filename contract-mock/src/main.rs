@@ -6,48 +6,79 @@ use axum::{
     Json, Router,
 };
 use color_eyre::eyre::Result;
+use common::crypto::PublicKey;
+use primitives::{Hash, Val};
 use rand::{random, Rng};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::RwLock;
 
+// TODO: Validations
 // TODO: UUID encoded as m31 vector. Used everywhere on the outside.
 type LogicalSegmentId = Vec<Val>;
-
-// Internal segment address
-struct Slot {
-    volume: Mersenne31,
-    index: Mersenne31,
-}
 
 // TODO: owner = hash(pk)
 // POSEIDON2_HASH.hash_iter(...)
 
 // TODO: Cluster id is an offset inside a segment.
-type ClusterId = u64;
+type SlotId = u64;
 
-#[derive(Debug, Clone)]
-struct Owner {
-    owner_pk: Vec<u8>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Slot {
+    owner_pk: PublicKey,
+    segments: Vec<SegmentId>,
+}
+type SegmentId = [Val; 8];
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Segment {
+    slot: SlotId,
 }
 
-#[derive(Debug)]
 pub struct AppState {
-    segments: RwLock<HashMap<ClusterId, Owner>>,
+    // Assume that we have a single volume for now.
+    slots: RwLock<Vec<Slot>>,
+    segments: RwLock<HashMap<SegmentId, Segment>>,
 }
 
-async fn reserve_segment(
+#[derive(Deserialize)]
+struct UploadSegmentReq {
+    segment: SegmentId,
+    slot: SlotId,
+    owner_pk: PublicKey,
+    commit: Hash,
+}
+
+// Prepares segment for upload
+async fn upload_segment(
     state: axum::extract::State<Arc<AppState>>,
-    form: Json<Owner>,
-) -> Result<u64, StatusCode> {
-    let new_segment_id = random();
+    form: Json<UploadSegmentReq>,
+) -> Result<(), StatusCode> {
+    let mut slots = state.slots.write().await;
 
-    state
-        .segments
-        .write()
+    let mut slot = slots
+        .iter_mut()
+        .find(|slot| slot.owner_pk == form.owner_pk)
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    slot.segments.push(form.segment);
+
+    Ok(())
+}
+
+async fn slot_segments(
+    state: axum::extract::State<Arc<AppState>>,
+    slot_id: axum::extract::Path<SlotId>,
+) -> Result<Json<Vec<SegmentId>>, StatusCode> {
+    let slot = state
+        .slots
+        .read()
         .await
-        .insert(new_segment_id, form.0.clone());
+        .get(slot_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let segments = slot.segments.clone();
 
-    Ok(new_segment_id)
+    Ok(Json(segments.clone()))
 }
 
 async fn info_handler(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -58,7 +89,10 @@ async fn info_handler(state: axum::extract::State<Arc<AppState>>) -> Json<serde_
 
 pub async fn start_server(state: Arc<AppState>, addr: &str) -> color_eyre::Result<()> {
     let app = Router::new()
-        .route("/reserve-cluster", post(reserve_segment))
+        .route("/info", get(info_handler))
+        .route("/slots/:id/segments", get(slot_segments))
+        .route("/slots", post(reserve_slot))
+        .route("/reserve-segment", post(upload_segment))
         .with_state(state.clone());
 
     let addr: SocketAddr = addr.parse()?;
@@ -68,13 +102,27 @@ pub async fn start_server(state: Arc<AppState>, addr: &str) -> color_eyre::Resul
     Ok(())
 }
 
+pub async fn reserve_slot(
+    state: axum::extract::State<Arc<AppState>>,
+    form: Json<Slot>,
+) -> Result<Json<u64>, StatusCode> {
+    let mut slots = state.slots.write().await;
+    let next_slot = slots.len();
+    slots.push(form.0.clone());
+
+    Ok((next_slot as u64).into())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     color_eyre::install()?;
     tracing_subscriber::fmt::init();
 
-    let state = Arc::new(AppState {});
+    let state = Arc::new(AppState {
+        slots: Default::default(),
+        segments: Default::default(),
+    });
     start_server(state, "0.0.0.0:80").await?;
 
     Ok(())

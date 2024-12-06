@@ -3,11 +3,12 @@ use std::{
     sync::Arc,
 };
 
+use common::config::StorageConfig;
 use libp2p::{Multiaddr, PeerId};
 use m31jubjub::m31::{Fq, Fs};
+use primitives::Val;
 use serde::{Deserialize, Serialize};
-use snapshot_db::db::SnapshotDb;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{mpsc, RwLock};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Peer {
@@ -18,26 +19,33 @@ pub struct Peer {
 
 pub type NodeId = u32;
 
+pub enum Command {
+    UploadCluster { id: u32, shards: Vec<Vec<Val>> },
+}
+
 pub struct AppState {
-    // We don't need to use kademlia since our routing table is pretty small, and we need to access
-    // nodes by their ID with as little delay as possible. So storing the full routing table on each
-    // node with some ad-hoc replication is acceptable for now.
-    /// Routing table that also contains some node metadata.
     pub peers: RwLock<HashMap<NodeId, Peer>>,
     pub validators: RwLock<Vec<Peer>>,
-    pub storage: SnapshotDb,
     pub sk: Fs,
     pub pk: Fq,
+    pub storage_config: StorageConfig,
+    pub command_sender: mpsc::Sender<Command>,
 }
 
 impl AppState {
-    pub fn new(storage: SnapshotDb, sk: Fs, pk: Fq) -> Self {
+    pub fn new(
+        sk: Fs,
+        pk: Fq,
+        storage_config: StorageConfig,
+        command_sender: mpsc::Sender<Command>,
+    ) -> Self {
         Self {
             peers: RwLock::default(),
             validators: RwLock::default(),
-            storage,
             sk,
             pk,
+            storage_config,
+            command_sender,
         }
     }
 }

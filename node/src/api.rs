@@ -10,45 +10,15 @@ use axum::{
 use color_eyre::Result;
 use serde_json::json;
 
-use crate::{state::AppState, storage};
-
-// async fn upload_sector(
-//     state: axum::extract::State<Arc<AppState>>,
-//     mut multipart: Multipart,
-// ) -> color_eyre::Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
-//     while let Some(field) = multipart
-//         .next_field()
-//         .await
-//         .map_err(|_| StatusCode::BAD_REQUEST)?
-//     {
-//         let _name = field.name().unwrap().to_string();
-//         let file_name = field.file_name().unwrap().to_string();
-//         let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-//         let elements: Vec<_> =
-//             bincode::deserialize(data.as_ref()).map_err(|_| StatusCode::BAD_REQUEST)?;
-//
-//         state
-//             .storage
-//             .write(
-//                 &elements,
-//                 file_name.parse().map_err(|_| StatusCode::BAD_REQUEST)?,
-//             )
-//             .await
-//             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-//
-//         return Ok((StatusCode::CREATED, Json(json!({ "status": "ok" }))));
-//     }
-//
-//     Err(StatusCode::BAD_REQUEST)
-// }
+use crate::state::AppState;
 
 async fn download_cluster(
     state: axum::extract::State<Arc<AppState>>,
     Path(id): Path<usize>,
-) -> color_eyre::Result<Response, StatusCode> {
+) -> Result<Response, StatusCode> {
     let data = state
         .storage
-        .read_bin(id)
+        .read(0, id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -74,6 +44,7 @@ pub async fn start_server(state: Arc<AppState>, addr: &str) -> Result<()> {
 
     let addr: SocketAddr = addr.parse()?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
+    tracing::info!("HTTP server listening on {}", listener.local_addr()?);
     axum::serve(listener, app).await?;
 
     Ok(())
