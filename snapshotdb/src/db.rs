@@ -130,8 +130,9 @@ impl SnapshotDb {
     /// # Returns
     /// * `Result<()>` - Success or IO error
     pub async fn write(&self, cluster_id: usize, data: &[u8]) -> Result<()> {
-        assert!(data.len() == self.config.cluster_size);
-
+        if data.len() != self.config.cluster_size {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Data size does not match cluster size"));
+        }
         
         let slot = self.allocator.pop().await;
         let mut storage = File::from_std(self.storage.try_clone()?);
