@@ -5,14 +5,13 @@ members = [
     "sealing",
     "shards",
     "spora",
-    "storage",
+    "snapshotdb",
     "node",
     "common",
     "validator",
     "client",
     "contract-mock",
 ]
-
 
 [workspace.dependencies]
 p3-circle = { git = "https://github.com/zeropoolnetwork/Plonky3", branch = "fork/feature/cfft-symmetric-compatibility" }
