@@ -20,12 +20,10 @@
 
 use hashbrown::HashMap;
 use tokio::sync::{RwLock, Mutex};
-use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
 use std::io::Result;
 use std::path::Path;
 use std::sync::atomic::AtomicUsize;
-use std::fs::{OpenOptions, File as StdFile};
+use std::fs::{OpenOptions, File};
 use std::sync::Arc;
 
 use crate::allocator::{Allocator, FREE_SLOTS_MIN_RESERVE};
@@ -54,7 +52,7 @@ pub struct SnapshotDb {
     /// Total number of available slots
     num_slots: AtomicUsize,
     /// File handle for data storage
-    storage: Arc<StdFile>
+    storage: Arc<File>
 }
 
 /// Manages mapping between snapshots and their data locations
@@ -84,6 +82,7 @@ impl SnapshotDb {
         let storage = OpenOptions::new()
             .read(true)
             .write(true)
+            .truncate(false)
             .create(true)
             .open(storage_path)?;
 
@@ -97,20 +96,16 @@ impl SnapshotDb {
 
         let mut link_counter = vec![0; num_slots];
 
-        for slot in offset_table_vec.iter() {
-            for entry in slot.iter() {
-                if let Some(entry) = entry {
-                    link_counter[entry.offset as usize] += 1;
-                }
-            }
+        for entry in offset_table_vec.iter().flatten().flatten() {
+            link_counter[entry.offset as usize] += 1;
         }
 
         let allocator = Allocator::from_link_counter(link_counter);
 
         let mut offset_table = HashMap::new();
 
-        for i in 0..offset_table_vec.len() {
-            let slot = offset_table_vec[i].clone().into_iter().map(|entry| Mutex::new(entry.unwrap())).collect();
+        for (i, item) in offset_table_vec.iter().enumerate() {
+            let slot = item.clone().into_iter().map(|entry| Mutex::new(entry.unwrap())).collect();
             offset_table.insert(i, slot);
         }
 
@@ -135,13 +130,10 @@ impl SnapshotDb {
         }
         
         let slot = self.allocator.pop().await;
-        let mut storage = File::from_std(self.storage.try_clone()?);
 
         let raw_offset = slot as u64 * self.config.cluster_size as u64;
     
         write_all_at(self.storage.clone(), data, raw_offset).await?;
-
-        storage.flush().await?;
 
         custom_sync_range(self.storage.clone(), raw_offset, data.len() as u64).await?;
 
@@ -265,10 +257,10 @@ impl SnapshotDb {
 
         for (cluster_id, entry) in removed_snapshot.into_iter().enumerate() {
             let entry = entry.into_inner();
-            let start_entry = start_snapshot.get(cluster_id).unwrap().lock().await.clone();
+            let start_entry = *start_snapshot.get(cluster_id).unwrap().lock().await;
             if start_entry.db_snapshot == start as u64 {
                 offsets_to_dec.push(entry.offset as usize);
-                keys_to_remove.push(SledKey::OffsetTable(entry.db_snapshot as u64, cluster_id as u64));
+                keys_to_remove.push(SledKey::OffsetTable(entry.db_snapshot, cluster_id as u64));
             }
         }
 
@@ -283,7 +275,7 @@ impl SnapshotDb {
 }
 
 
-async fn init_db(db: &SledWrapper, fp: &StdFile, config: &SnapshotDbConfig) -> Result<()> {
+async fn init_db(db: &SledWrapper, fp: &File, config: &SnapshotDbConfig) -> Result<()> {
     db.set_snapshot_start(0)?;
     db.set_snapshot_pending(1)?;
     db.set_num_slots(FREE_SLOTS_MIN_RESERVE + config.num_clusters)?;

@@ -212,7 +212,7 @@ where T: Default+Copy
     }   
 }
 
-impl <'a, T, P, const WIDTH: usize, const OUT: usize> Iterator for StreamCipherIterator<'a, T,P,WIDTH,OUT>
+impl <T, P, const WIDTH: usize, const OUT: usize> Iterator for StreamCipherIterator<'_,T,P,WIDTH,OUT>
 where T:Default+Copy, P: CryptographicPermutation<[T;WIDTH]>
 {
     type Item = T;

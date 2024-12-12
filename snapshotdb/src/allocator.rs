@@ -67,8 +67,8 @@ impl Allocator {
         let (tx, rx) = unbounded();
 
         let mut num_free_slots = 0;
-        for i in 0..len {
-            if link_counter[i] == 0 {
+        for (i, &item) in link_counter.iter().enumerate() {
+            if item == 0 {
                 tx.send(i).unwrap();
                 num_free_slots += 1;
             }
@@ -178,5 +178,9 @@ impl Allocator {
 
     pub async fn len(&self) -> usize {
         self.link_counter.read().await.len()
+    }
+
+    pub async fn is_empty(&self) -> bool {
+        self.len().await == 0
     }
 }

@@ -24,6 +24,6 @@ pub fn sealing_vec(seed: Hash) -> Vec<Val> {
 
 pub fn get_fragment_seed(node_id:usize, volume_id:usize, segment_id:usize, fragment_id:usize) -> Hash {
     let preimage = [Val::new(node_id as u32), Val::new(fragment_id as u32), Val::new(segment_id as u32), Val::new(volume_id as u32)];
-    poseidon2_hash_slice(&preimage)
+    poseidon2_hash_slice(preimage)
 }
 

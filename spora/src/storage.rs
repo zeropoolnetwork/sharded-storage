@@ -28,7 +28,7 @@ impl UnstructuredStorageReader for SimpleTestingStorageEmulator {
             Val::new((index >> (3 * BITS_PER_SAMPLE)) as u32 & MASK)
         ];
 
-        poseidon2_hash_slice(&parts).as_ref()[0]
+        poseidon2_hash_slice(parts).as_ref()[0]
     }
 
     fn log_len(&self) -> usize {
