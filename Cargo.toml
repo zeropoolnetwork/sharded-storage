@@ -8,7 +8,6 @@ members = [
     "snapshotdb",
     "node",
     "common",
-    "validator",
     "client",
     "contract-mock",
 ]

@@ -11,24 +11,24 @@ COPY primitives primitives
 COPY sealing sealing
 COPY spora spora
 COPY shards shards
-COPY storage storage
+COPY snapshotdb snapshotdb
+# FIXME: `cargo new` for each one of these:
+COPY node node
+COPY client client
 
-COPY validator validator
-COPY contract-mock contract-mock
-
-WORKDIR /app/validator
-RUN USER=root cargo init --name validator
+WORKDIR /app/contract-mock
+RUN USER=root cargo init --name contract-mock
 RUN cargo build --release
 
 # Build
 RUN rm src/*.rs
-RUN /bin/bash -c 'rm ./target/release/deps/validator*'
-COPY validator/src ./src
+RUN /bin/bash -c 'rm ../target/release/deps/contract_mock*'
+COPY contract-mock .
 RUN cargo build --release
 
 # Final image
 FROM rustlang/rust:nightly
 
 WORKDIR /app
-COPY --from=build /app/target/release/validator /app/validator
-CMD /app/validator
+COPY --from=build /app/target/release/contract-mock /app/contract-mock
+CMD /app/contract-mock

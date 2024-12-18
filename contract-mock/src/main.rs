@@ -13,14 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::RwLock;
 
-// TODO: Validations
-// TODO: UUID encoded as m31 vector. Used everywhere on the outside.
-type LogicalSegmentId = Vec<Val>;
-
-// TODO: owner = hash(pk)
-// POSEIDON2_HASH.hash_iter(...)
-
-// TODO: Cluster id is an offset inside a segment.
 type SlotId = u64;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,13 +60,14 @@ async fn upload_segment(
 
 async fn slot_segments(
     state: axum::extract::State<Arc<AppState>>,
-    slot_id: axum::extract::Path<SlotId>,
+    axum::extract::Path(slot_id): axum::extract::Path<SlotId>,
 ) -> Result<Json<Vec<SegmentId>>, StatusCode> {
     let slot = state
         .slots
         .read()
         .await
-        .get(slot_id)
+        .get(slot_id as usize)
+        .cloned()
         .ok_or(StatusCode::NOT_FOUND)?;
     let segments = slot.segments.clone();
 

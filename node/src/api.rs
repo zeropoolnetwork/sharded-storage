@@ -8,24 +8,62 @@ use axum::{
     Json, Router,
 };
 use color_eyre::Result;
+use p3_matrix::dense::RowMajorMatrix;
+use primitives::Val;
 use serde_json::json;
+use shards::compute_commitment;
 
-use crate::state::AppState;
+use crate::state::{AppState, Command, NodeState};
 
 async fn download_cluster(
     state: axum::extract::State<Arc<AppState>>,
-    Path(id): Path<usize>,
+    Path(cluster_id): Path<usize>,
 ) -> Result<Response, StatusCode> {
-    let data = state
-        .storage
-        .read(0, id)
+    match &state.node_state {
+        NodeState::Validator => Err(StatusCode::FORBIDDEN),
+        NodeState::Storage { storage } => {
+            let data = storage
+                .read(0, cluster_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            let body = axum::body::Body::from(data);
+            let headers = [(header::CONTENT_TYPE, "application/octet-stream")];
+
+            Ok((headers, body).into_response())
+        }
+    }
+}
+
+async fn upload_cluster(
+    state: axum::extract::State<Arc<AppState>>,
+    Path(cluster_id): Path<u32>,
+    mut multipart: Multipart,
+) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
+    while let Some(field) = multipart
+        .next_field()
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::BAD_REQUEST)?
+    {
+        let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+        let elements: Vec<Val> =
+            bincode::deserialize(&data).map_err(|_| StatusCode::BAD_REQUEST)?;
+        let matrix = RowMajorMatrix::new(elements, state.storage_config.m);
+        let (commit, shards) = compute_commitment(matrix, state.storage_config.log_blowup_factor());
 
-    let body = axum::body::Body::from(data);
-    let headers = [(header::CONTENT_TYPE, "application/octet-stream")];
+        state
+            .command_sender
+            .send(Command::UploadCluster {
+                id: cluster_id,
+                shards,
+            })
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok((headers, body).into_response())
+        return Ok((StatusCode::CREATED, Json(json!({ "status": "ok" }))));
+    }
+
+    Err(StatusCode::BAD_REQUEST)
 }
 
 async fn get_info(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json::Value> {
@@ -38,8 +76,12 @@ async fn get_info(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json
 
 pub async fn start_server(state: Arc<AppState>, addr: &str) -> Result<()> {
     let app = Router::new()
-        .route("/cluster/:id", get(download_cluster))
+        .route(
+            "/cluster/:cluster_id",
+            get(download_cluster).post(upload_cluster),
+        )
         .route("/info", get(get_info))
+        .route("/", get(get_info))
         .with_state(state.clone());
 
     let addr: SocketAddr = addr.parse()?;

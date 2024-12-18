@@ -1,15 +1,14 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
+use common::{config::StorageConfig, contract::MockContractClient};
 use libp2p::{Multiaddr, PeerId};
 use m31jubjub::m31::{Fq, Fs};
+use primitives::Val;
 use serde::{Deserialize, Serialize};
 use snapshot_db::db::SnapshotDb;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{mpsc, RwLock};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Peer {
     pub peer_id: PeerId,
     pub addr: Multiaddr,
@@ -18,26 +17,54 @@ pub struct Peer {
 
 pub type NodeId = u32;
 
+#[derive(Clone, Debug)]
+pub enum Command {
+    UploadCluster { id: u32, shards: Vec<Vec<Val>> },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum NodeKind {
+    Validator,
+    Storage { id: NodeId },
+}
+
+pub enum NodeState {
+    Validator,
+    Storage { storage: SnapshotDb },
+}
+
 pub struct AppState {
     // We don't need to use kademlia since our routing table is pretty small, and we need to access
     // nodes by their ID with as little delay as possible. So storing the full routing table on each
     // node with some ad-hoc replication is acceptable for now.
-    /// Routing table that also contains some node metadata.
     pub peers: RwLock<HashMap<NodeId, Peer>>,
-    pub validators: RwLock<Vec<Peer>>,
-    pub storage: SnapshotDb,
+    pub validators: RwLock<HashSet<Peer>>,
+    pub node_state: NodeState,
     pub sk: Fs,
     pub pk: Fq,
+    pub storage_config: StorageConfig,
+    pub command_sender: mpsc::Sender<Command>,
+    pub contract_client: MockContractClient,
 }
 
 impl AppState {
-    pub fn new(storage: SnapshotDb, sk: Fs, pk: Fq) -> Self {
+    pub fn new(
+        sk: Fs,
+        pk: Fq,
+        storage_config: StorageConfig,
+        command_sender: mpsc::Sender<Command>,
+        node_state: NodeState,
+        contract_client: MockContractClient,
+    ) -> Self {
         Self {
             peers: RwLock::default(),
             validators: RwLock::default(),
-            storage,
+            node_state,
             sk,
             pk,
+            storage_config,
+            command_sender,
+            contract_client,
         }
     }
 }

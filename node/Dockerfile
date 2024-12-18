@@ -11,9 +11,8 @@ COPY primitives primitives
 COPY sealing sealing
 COPY spora spora
 COPY shards shards
-COPY storage storage
+COPY snapshotdb snapshotdb
 # FIXME: `cargo new` for each one of these:
-COPY validator validator
 COPY contract-mock contract-mock
 COPY client client
 

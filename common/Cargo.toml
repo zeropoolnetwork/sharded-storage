@@ -9,6 +9,10 @@ p3-poseidon2 = { workspace = true }
 p3-symmetric = { workspace = true }
 p3-field = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 m31jubjub = { workspace = true }
+reqwest = { workspace = true, features = ["multipart", "json"] }
+color-eyre = { workspace = true }
+bincode = { workspace = true }
 
 primitives = { path = "../primitives" }
