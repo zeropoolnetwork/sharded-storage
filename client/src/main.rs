@@ -1,25 +1,21 @@
 use std::{fs, path::PathBuf};
 
 use clap::{Parser, Subcommand};
-use color_eyre::Result;
+use color_eyre::{Report, Result};
 use common::{
-    // blowup,
     config::StorageConfig,
-    encode::{decode, encode},
-    Field,
+    contract::MockContractClient,
+    crypto::derive_keys,
+    encode::{decode, encode, encode_aligned},
+    node::NodeClient,
 };
-use m31jubjub::{
-    eddsa::SigParams,
-    hdwallet::{priv_key, pub_key},
-    m31::{FqBase, Fs, M31JubJubSigParams},
-};
-use rand::{thread_rng, Rng};
-use reqwest::multipart;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use m31jubjub::m31::M31JubJubSigParams;
+use p3_matrix::dense::RowMajorMatrix;
+use primitives::Val;
+use rand::random;
+use serde::Serialize;
+use shards::{compute_commitment, recover_original_data, recover_original_data_matrix};
 use tokio::io::AsyncReadExt;
-
-const KEY_PATH: &str = "m/42/0'/1337'"; // FIXME
 
 // TODO: Proper logging
 #[derive(Parser)]
@@ -27,8 +23,10 @@ const KEY_PATH: &str = "m/42/0'/1337'"; // FIXME
 struct Cli {
     #[command(subcommand)]
     command: Commands,
-    #[arg(short, long, default_value = "http://localhost:3000")]
-    node_url: String,
+    #[arg(short, long)]
+    validator_url: String,
+    #[arg(short, long)]
+    contract_url: String,
 }
 
 #[derive(Subcommand)]
@@ -37,17 +35,13 @@ enum Commands {
         #[arg(short, long)]
         file: PathBuf,
         #[arg(short, long)]
-        sector: usize,
-        #[arg(short, long)]
         mnemonic: String,
     },
     Download {
         #[arg(short, long)]
-        id: String,
+        id: u32,
         #[arg(short, long)]
         output: PathBuf,
-        #[arg(short, long)]
-        size: usize,
     },
 }
 
@@ -56,18 +50,15 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
 
     let cli = Cli::parse();
-    let storage_config = serde_json::from_str(&fs::read_to_string("storage_config.json")?)?;
+    let validator_client = NodeClient::new(&cli.validator_url);
+    let contract_client = MockContractClient::new(&cli.contract_url);
 
     match cli.command {
-        Commands::Upload {
-            file,
-            sector,
-            mnemonic,
-        } => {
-            upload_file(file, &cli.node_url, &storage_config, sector, &mnemonic).await?;
+        Commands::Upload { file, mnemonic } => {
+            upload_file(file, &mnemonic, &validator_client, &contract_client).await?;
         }
-        Commands::Download { id, output, size } => {
-            download_file(id, size, output, &cli.node_url, &storage_config).await?;
+        Commands::Download { id, output } => {
+            download_cluster(id, output, &validator_client).await?;
         }
     }
 
@@ -76,165 +67,95 @@ async fn main() -> Result<()> {
 
 async fn upload_file(
     file_path: PathBuf,
-    node: &str,
-    storage_config: &StorageConfig,
-    sector: usize,
     mnemonic: &str,
+    validator: &NodeClient,
+    contract: &MockContractClient,
 ) -> Result<()> {
     let config = StorageConfig::dev();
     let file_data = fs::read(&file_path)?;
 
-    if file_data.len() > storage_config.cluster_size_bytes() {
-        return Err("File is too large".into());
+    if file_data.len() > config.cluster_size_bytes() {
+        return Err(color_eyre::eyre::eyre!("File too large"));
     }
 
-    let blowup_factor = storage_config.q / storage_config.m;
-
-    let client = reqwest::Client::new();
-
-    let nodes_response: Value = client
-        .get(&format!("{}/info", node))
-        .send()
-        .await?
-        .json()
-        .await?;
-
-    // FIXME: Proper types
-    let nodes = nodes_response["peers"].as_array().unwrap();
-    if nodes.len() < blowup_factor {
-        return Err("Not enough nodes to upload the file".into());
-    }
-
-    let encoded_file = encode(&file_data)
+    let serialized_data = bincode::serialize(&file_data)?;
+    let encoded_data = encode_aligned(&serialized_data, config.m)?
         .into_iter()
-        .chain((0..).map(|_| Field::new(0)))
+        .chain((0..).map(|_| Val::new(0)))
         .take(config.cluster_size())
         .collect::<Vec<_>>();
 
-    // TODO: Limit to one sector for now
-
-    // FIXME: commitment
-
-    let clusters = encoded_file.chunks(storage_config.num_clusters());
     let sig_params = M31JubJubSigParams::default();
-    let private_key = priv_key::<M31JubJubSigParams>(mnemonic, KEY_PATH).unwrap();
-    let public_key = pub_key::<M31JubJubSigParams>(mnemonic, KEY_PATH).unwrap();
-    let signature = sig_params.sign(&encoded_file, private_key);
+    let (private_key, public_key) = derive_keys(mnemonic).unwrap();
 
-    // TODO: Proper sector allocation/reservation
-    for (i, cluster) in clusters.enumerate() {
-        let shard_data = bincode::serialize(cluster)?;
-        let node_url = nodes[sector + i]["address"].as_str().unwrap();
-        upload_sector(&client, sector + i, node_url, shard_data).await?;
-    }
+    let data_matrix = RowMajorMatrix::new(encoded_data.clone(), config.m);
+    let (commit, _shards) = compute_commitment(data_matrix, config.log_blowup_factor());
+
+    let cluster_id: u32 = random();
+
+    println!("Uploading file to cluster {}", cluster_id);
+    validator.upload_cluster(cluster_id, encoded_data).await?;
 
     println!("File uploaded successfully!");
     Ok(())
 }
 
-async fn upload_sector(
-    client: &reqwest::Client,
-    index: usize,
-    node_url: &str,
-    data: Vec<u8>,
-) -> Result<()> {
-    let part = multipart::Part::bytes(data)
-        .file_name(index.to_string())
-        .mime_str("application/octet-stream")?;
+async fn upload_cluster(index: usize, validator_url: &str, data: Vec<Val>) -> Result<()> {
+    let validator = NodeClient::new(validator_url);
+    validator.upload_cluster(index as u32, data).await?;
 
-    let form = multipart::Form::new().part("file", part);
-
-    let response = client
-        .post(&format!("{}/upload", node_url))
-        .multipart(form)
-        .send()
-        .await?;
-
-    if response.status().is_success() {
-        println!("Uploaded chunk {} to {}", index, node_url);
-        Ok(())
-    } else {
-        Err(format!("Failed to upload chunk {} to {}", index, node_url).into())
-    }
+    Ok(())
 }
 
-async fn download_sector(
-    client: &reqwest::Client,
-    index: usize,
-    node_url: &str,
-) -> Result<Vec<Field>> {
-    let response = client
-        .get(&format!("{}/download/{}", node_url, index))
-        .send()
-        .await?;
+async fn download_cluster(cluster_id: u32, output: PathBuf, validator: &NodeClient) -> Result<()> {
+    let t_full_start = std::time::Instant::now();
 
-    if response.status().is_success() {
-        let data = response.bytes().await?;
-        let decoded_data: Vec<Field> = bincode::deserialize(&data)?;
-        Ok(decoded_data)
-    } else {
-        Err(format!("Failed to download chunk {} from {}", index, node_url).into())
-    }
-}
+    let storage_config = StorageConfig::dev();
+    let nodes = validator.get_info().await?.peers;
+    let num_shards = nodes.len();
 
-async fn download_file(
-    file_id: String,
-    size: usize,
-    output: PathBuf,
-    node: &str,
-    storage_config: &StorageConfig,
-) -> Result<()> {
-    let client = reqwest::Client::new();
+    let t_shards_start = std::time::Instant::now();
 
-    let nodes_response: Value = client
-        .get(&format!("{}/info", node))
-        .send()
-        .await?
-        .json()
-        .await?;
+    let futures = nodes
+        .into_iter()
+        .take(storage_config.m)
+        .map(|(node_id, url)| {
+            tokio::spawn(async move {
+                let client = NodeClient::new(&url);
+                let data = client.download_cluster(cluster_id).await?;
+                Ok::<_, Report>((node_id, data))
+            })
+        })
+        .collect::<Vec<_>>();
 
-    let nodes = nodes_response["peers"].as_array().unwrap();
-    let blowup_factor = storage_config.q / storage_config.m;
-    // let sector_size = storage_config.n * storage_config.m;
-
-    if nodes.len() < blowup_factor {
-        return Err("Not enough nodes to download the file".into());
+    let mut shards: Vec<(usize, Vec<Val>)> = Vec::with_capacity(num_shards);
+    for future in futures {
+        shards.push(future.await??);
     }
 
-    let mut downloaded_data = Vec::new();
-    let mut sector_index = 0;
+    let t_shards_end = t_shards_start.elapsed();
+    println!("Downloaded {num_shards} shards in {t_shards_end:?}");
 
-    loop {
-        let mut sector_shards = Vec::new();
+    let t_shards_recovery_start = std::time::Instant::now();
 
-        for i in 0..blowup_factor {
-            let node_url = nodes[i]["address"].as_str().unwrap();
-            match download_sector(&client, sector_index, node_url).await {
-                Ok(shard) => {
-                    sector_shards.push(shard);
-                }
-                Err(_) => continue,
-            }
-        }
+    let (indices, shards): (Vec<usize>, Vec<Vec<Val>>) = shards.into_iter().unzip();
+    let elements = shards.into_iter().flatten().collect::<Vec<_>>();
+    let shards_data = RowMajorMatrix::new(elements, storage_config.m);
 
-        if sector_shards.is_empty() {
-            break;
-        }
+    let log_dimension = storage_config.n.ilog2() as usize;
+    let recover_matrix =
+        recover_original_data_matrix(log_dimension, &indices, storage_config.log_blowup_factor());
+    let recovered_data = recover_original_data(shards_data, &recover_matrix);
 
-        let values = sector_shards
-            .iter()
-            .flatten()
-            .copied()
-            .collect::<Vec<Field>>();
-        let reconstructed_sector = common::reconstruct(&values, &storage_config);
-        downloaded_data.extend_from_slice(&reconstructed_sector);
+    let decoded_data = decode(&recovered_data.values, storage_config.m);
+    let reader = std::io::Cursor::new(decoded_data);
+    let deserialized_data: Vec<u8> = bincode::deserialize_from(reader)?;
 
-        sector_index += 1;
-    }
+    fs::write(output, &deserialized_data)?;
 
-    let decoded_data = decode(&downloaded_data, size);
-    fs::write(output, decoded_data)?;
-
-    println!("File downloaded successfully!");
+    let t_shards_recovery_end = t_shards_recovery_start.elapsed();
+    println!("Recovered original data in {t_shards_recovery_end:?}");
+    let t_full_end = t_full_start.elapsed();
+    println!("Downloaded file in {t_full_end:?}");
     Ok(())
 }

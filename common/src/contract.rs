@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::crypto::PublicKey;
 
+// TODO: Implement an error type
+
 type LogicalSegmentId = Vec<Val>;
 type SlotId = u64;
 type SegmentId = [Val; 8];

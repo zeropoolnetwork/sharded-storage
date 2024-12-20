@@ -9,8 +9,12 @@ reqwest = { workspace = true, features = ["multipart", "json"] }
 clap = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-common = { path = "../common" }
 serde = { workspace = true }
 bincode = { workspace = true }
 m31jubjub = { workspace = true }
 rand = { workspace = true }
+p3-matrix = { workspace = true }
+
+primitives = { path = "../primitives" }
+common = { path = "../common" }
+shards = { path = "../shards" }

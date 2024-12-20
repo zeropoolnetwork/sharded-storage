@@ -20,11 +20,12 @@ struct Slot {
     owner_pk: PublicKey,
     segments: Vec<SegmentId>,
 }
-type SegmentId = [Val; 8];
+type SegmentId = [Val; 5];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Segment {
     slot: SlotId,
+    segment: usize,
 }
 
 pub struct AppState {
@@ -35,10 +36,14 @@ pub struct AppState {
 
 #[derive(Deserialize)]
 struct UploadSegmentReq {
-    segment: SegmentId,
     slot: SlotId,
     owner_pk: PublicKey,
     commit: Hash,
+}
+
+#[derive(Deserialize)]
+struct UploadSegmentRes {
+    segment_id: SegmentId,
 }
 
 // Prepares segment for upload
@@ -53,7 +58,16 @@ async fn upload_segment(
         .find(|slot| slot.owner_pk == form.owner_pk)
         .ok_or(StatusCode::BAD_REQUEST)?;
 
-    slot.segments.push(form.segment);
+    let segment_id = random();
+
+    slot.segments.push(segment_id);
+    state.segments.write().await.insert(
+        segment_id,
+        Segment {
+            slot: form.slot,
+            segment: slot.segments.len() - 1,
+        },
+    );
 
     Ok(())
 }
@@ -80,6 +94,17 @@ async fn info_handler(state: axum::extract::State<Arc<AppState>>) -> Json<serde_
     }))
 }
 
+pub async fn reserve_slot(
+    state: axum::extract::State<Arc<AppState>>,
+    form: Json<Slot>,
+) -> Result<Json<u64>, StatusCode> {
+    let mut slots = state.slots.write().await;
+    let next_slot = slots.len();
+    slots.push(form.0.clone());
+
+    Ok((next_slot as u64).into())
+}
+
 pub async fn start_server(state: Arc<AppState>, addr: &str) -> color_eyre::Result<()> {
     let app = Router::new()
         .route("/info", get(info_handler))
@@ -93,17 +118,6 @@ pub async fn start_server(state: Arc<AppState>, addr: &str) -> color_eyre::Resul
     axum::serve(listener, app).await?;
 
     Ok(())
-}
-
-pub async fn reserve_slot(
-    state: axum::extract::State<Arc<AppState>>,
-    form: Json<Slot>,
-) -> Result<Json<u64>, StatusCode> {
-    let mut slots = state.slots.write().await;
-    let next_slot = slots.len();
-    slots.push(form.0.clone());
-
-    Ok((next_slot as u64).into())
 }
 
 #[tokio::main]

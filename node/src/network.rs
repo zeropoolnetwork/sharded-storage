@@ -24,6 +24,7 @@ pub struct Config {
     pub boot_node: Option<Multiaddr>,
     pub node_kind: NodeKind,
     pub public_api_url: String,
+    pub external_ip: String,
 }
 
 #[derive(NetworkBehaviour)]
@@ -37,7 +38,11 @@ enum Req {
     //       Or maybe use kademlia for peer discovery with a full local cache for each node.
     // This is an ad-hoc peer discovery solution. Instead of using a DHT, we use a replicated routing table.
     /// Ask a bootstrap node to initialize us.
-    InitNode { kind: NodeKind, api_url: String },
+    InitNode {
+        kind: NodeKind,
+        api_url: String,
+        external_addr: Multiaddr,
+    },
     /// Notify peers about the new node. An ad-hoc peer discovery solution.
     NewNode { kind: NodeKind, peer: Peer },
 
@@ -51,6 +56,7 @@ enum Res {
     /// The reply to an `InitNode` request. Contains needed network information.
     InitNodeSuccess {
         boot_node_kind: NodeKind,
+        boot_node_public_api_url: String,
         validators: HashSet<Peer>,
         peers: HashMap<NodeId, Peer>,
     },
@@ -65,7 +71,6 @@ pub async fn start_network(
     state: Arc<AppState>,
     mut command_receiver: mpsc::Receiver<Command>,
 ) -> Result<()> {
-    // For local debugging
     let local_key = match config.node_kind {
         NodeKind::Validator => load_or_generate_keypair("data/validator-keypair"),
         NodeKind::Storage { id } => load_or_generate_keypair(&format!("data/node{}-keypair", id)),
@@ -89,6 +94,14 @@ pub async fn start_network(
 
     swarm.listen_on(format!("/ip4/0.0.0.0/udp/{}/quic-v1", config.p2p_port).parse()?)?;
 
+    // TODO: Proper NAT traversal
+    let full_external_addr = format!(
+        "/ip4/{}/udp/{}/quic-v1",
+        config.external_ip, config.p2p_port
+    )
+    .parse::<Multiaddr>()?
+    .with(Protocol::P2p(*swarm.local_peer_id()));
+
     if let Some(multiaddr) = &config.boot_node {
         tracing::info!("Bootstrapping from {}", multiaddr);
         let peer = extract_peer_id_from_addr(&multiaddr)?;
@@ -98,6 +111,7 @@ pub async fn start_network(
             Req::InitNode {
                 kind: config.node_kind.clone(),
                 api_url: config.public_api_url.clone(),
+                external_addr: full_external_addr,
             },
         );
     }
@@ -105,15 +119,12 @@ pub async fn start_network(
     let cloned_state = state.clone();
     let state = cloned_state;
 
-    // FIXME: Implement cleanup
-    let mut address_cache = HashMap::new();
-
     loop {
         let event = swarm.select_next_some().await;
 
         // TODO: Check for heavy blockers inside of the loop
         let res: Result<()> = tokio::select! {
-            event = swarm.select_next_some() => process_event(event, &mut swarm, &mut address_cache, state.clone(), &config).await,
+            event = swarm.select_next_some() => process_event(event, &mut swarm, state.clone(), &config).await,
             command = command_receiver.recv() => process_command(command, &mut swarm, state.clone()).await,
         };
 
@@ -136,6 +147,8 @@ fn load_or_generate_keypair(path: &str) -> Result<identity::Keypair> {
     let keypair = match std::fs::read(path) {
         Ok(data) => identity::Keypair::from_protobuf_encoding(&data)?,
         Err(_) => {
+            std::fs::create_dir_all(std::path::Path::new(path).parent().unwrap())?;
+
             let keypair = identity::Keypair::generate_ed25519();
             std::fs::write(path, keypair.to_protobuf_encoding()?)?;
             keypair
@@ -148,7 +161,6 @@ fn load_or_generate_keypair(path: &str) -> Result<identity::Keypair> {
 async fn process_event(
     event: SwarmEvent<BehaviourEvent>,
     swarm: &mut Swarm<Behaviour>,
-    address_cache: &mut HashMap<PeerId, Multiaddr>,
     state: Arc<AppState>,
     config: &Config,
 ) -> Result<()> {
@@ -159,12 +171,21 @@ async fn process_event(
                 address.clone().with(Protocol::P2p(*swarm.local_peer_id()))
             );
         }
+        SwarmEvent::IncomingConnection {
+            local_addr,
+            send_back_addr,
+            ..
+        } => {
+            tracing::debug!(
+                "Incoming connection from {} to {}",
+                send_back_addr,
+                local_addr
+            );
+        }
         SwarmEvent::ConnectionEstablished {
             peer_id, endpoint, ..
         } => {
-            // Should work with the QUIC transport.
             let remote_addr = endpoint.get_remote_address();
-            address_cache.insert(peer_id, remote_addr.clone());
             tracing::debug!("Connected to peer {} at {}", peer_id, remote_addr);
         }
         SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
@@ -193,7 +214,11 @@ async fn process_event(
             } => {
                 tracing::debug!("Request from {}: {:?}", peer, request);
                 match request {
-                    Req::InitNode { kind, api_url } => {
+                    Req::InitNode {
+                        kind,
+                        api_url,
+                        external_addr,
+                    } => {
                         // TODO: Check if there is an existing node with the same ID. Fail if it exists
                         //       and the connection is valid (implement ping/heartbeat of some sort).
 
@@ -208,6 +233,7 @@ async fn process_event(
                                         Res::InitNodeSuccess {
                                             peers,
                                             boot_node_kind: config.node_kind.clone(),
+                                            boot_node_public_api_url: config.public_api_url.clone(),
                                             validators,
                                         },
                                     );
@@ -227,6 +253,7 @@ async fn process_event(
                                         channel,
                                         Res::InitNodeSuccess {
                                             boot_node_kind: config.node_kind.clone(),
+                                            boot_node_public_api_url: config.public_api_url.clone(),
                                             validators,
                                             peers,
                                         },
@@ -236,25 +263,18 @@ async fn process_event(
                             }
                         }
 
-                        match address_cache.get(&peer) {
-                            Some(peer_addr) => {
-                                let peer = Peer {
-                                    peer_id: peer,
-                                    addr: peer_addr.clone(),
-                                    api_url: api_url.clone(),
-                                };
-                                match kind {
-                                    NodeKind::Storage { id } => {
-                                        state.peers.write().await.insert(id, peer);
-                                    }
-                                    NodeKind::Validator => {
-                                        state.validators.write().await.insert(peer);
-                                    }
-                                }
+                        let peer_data = Peer {
+                            peer_id: peer,
+                            addr: external_addr.clone(),
+                            api_url: api_url.clone(),
+                        };
+
+                        match kind {
+                            NodeKind::Storage { id } => {
+                                state.peers.write().await.insert(id, peer_data);
                             }
-                            None => {
-                                let _ = swarm.disconnect_peer_id(peer);
-                                tracing::error!("InitNode req: peer address not cached");
+                            NodeKind::Validator => {
+                                state.validators.write().await.insert(peer_data);
                             }
                         }
 
@@ -273,6 +293,7 @@ async fn process_event(
                                 Req::InitNode {
                                     kind: kind.clone(),
                                     api_url: api_url.clone(),
+                                    external_addr: external_addr.clone(),
                                 },
                             );
                         }
@@ -310,10 +331,10 @@ async fn process_event(
                 match response {
                     Res::InitNodeSuccess {
                         boot_node_kind,
+                        boot_node_public_api_url,
                         validators,
                         peers,
                     } => {
-                        // TODO: Insert original bootnode
                         let mut local_peers = state.peers.write().await;
                         let mut local_validators = state.validators.write().await;
 
@@ -326,16 +347,16 @@ async fn process_event(
                                     id,
                                     Peer {
                                         peer_id: peer,
-                                        addr: address_cache.get(&peer).unwrap().clone(),
-                                        api_url: "".to_string(),
+                                        addr: config.boot_node.clone().unwrap(),
+                                        api_url: boot_node_public_api_url,
                                     },
                                 );
                             }
                             NodeKind::Validator => {
                                 local_validators.insert(Peer {
                                     peer_id: peer,
-                                    addr: address_cache.get(&peer).unwrap().clone(),
-                                    api_url: "".to_string(),
+                                    addr: config.boot_node.clone().unwrap(),
+                                    api_url: boot_node_public_api_url,
                                 });
                             }
                         }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use color_eyre::Result;
 use primitives::Val;
 use reqwest::Client;
@@ -5,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InfoResponse {
-    pub peers: Vec<String>,
+    pub peers: HashMap<usize, String>,
 }
 
 #[derive(Debug)]

@@ -19,6 +19,8 @@ mod network;
 mod state;
 
 // TODO: Might want to extract the validator into a separate crate in the future.
+// TODO: I'm not sure if libp2p is even needed here: we're only using it for transport, encryption,
+//       request/response.
 
 const COMMAND_CHANNEL_CAPACITY: usize = 100;
 
@@ -29,6 +31,8 @@ struct Args {
     api_addr: Option<String>,
     #[arg(short = 'u', long)]
     public_api_url: Option<String>,
+    #[arg(long)]
+    external_ip: Option<String>,
     #[arg(short = 'p', long)]
     p2p_port: Option<u16>,
     #[arg(short = 'b', long)]
@@ -57,6 +61,10 @@ async fn main() -> Result<()> {
         .public_api_url
         .or(std::env::var("PUBLIC_API_URL").ok())
         .expect("Public API URL not set");
+    let external_ip = args
+        .external_ip
+        .or(std::env::var("EXTERNAL_IP").ok())
+        .expect("External IP not set");
     let p2p_port = args
         .p2p_port
         .or_else(|| {
@@ -96,6 +104,7 @@ async fn main() -> Result<()> {
         boot_node,
         node_kind: node_kind.clone(),
         public_api_url,
+        external_ip,
     };
 
     let storage_config = StorageConfig::dev();
