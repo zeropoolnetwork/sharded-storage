@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  contract-mock:
+    build:
+      dockerfile: ./contract-mock/Dockerfile
+    ports:
+      - "8010:80"
+    container_name: contract-mock
+    volumes:
+      - contract-mock-data:/app/data
+  
+  validator:
+    build:
+      dockerfile: ./node/Dockerfile
+    container_name: validator
+    environment:
+      - API_ADDR=0.0.0.0:8011
+      - PUBLIC_API_URL=http://127.0.0.1:8011
+      - EXTERNAL_IP=127.0.0.1
+      - P2P_PORT=30333
+      - SEED_PHRASE=test test test test test test test test test test test junk
+      - CONTRACT_MOCK_URL=http://127.0.0.1:8010
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    volumes:
+      - validator-data:/app/data
+    network_mode: host
+volumes:
+  validator-data:
+  contract-mock-data:
+    
