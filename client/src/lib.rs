@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use color_eyre::{Report, Result};
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use common::{
     config::StorageConfig,
     contract::MockContractClient,
@@ -83,27 +85,27 @@ pub async fn download_shards(cluster_id: ClusterId, nodes: &HashMap<usize, Peer>
     );
 
     let num_shards = subcoset_indices.len();
-    let futures = subcoset_indices
-        .iter()
-        .take(storage_config.m)
-        .map(|node_id| {
-            let node = nodes[node_id].clone();
-            let cluster_id = cluster_id.clone();
-            tokio::spawn(async move {
-                let client = NodeClient::new(&node.api_url);
-                let t_start = std::time::Instant::now();
-                let data = client.download_cluster(cluster_id.clone()).await?;
-                let t_end = t_start.elapsed();
-                println!("Downloaded shard in {t_end:?}");
-                Ok::<_, Report>(data)
-            })
+    let mut tasks = FuturesUnordered::new();
+    for node_id in subcoset_indices.into_iter().take(storage_config.m) {
+        let node = nodes[&node_id].clone();
+        let cluster_id = cluster_id.clone();
+        tasks.push(async move {
+            let client = NodeClient::new(&node.api_url);
+            let t_start = std::time::Instant::now();
+            let data = client.download_cluster(cluster_id.clone()).await?;
+            let t_end = t_start.elapsed();
+            // println!("Downloaded shard in {t_end:?}");
+            Ok::<_, Report>((node_id, data))
         })
-        .collect::<Vec<_>>();
-
-    let mut shards: Vec<Vec<Val>> = Vec::with_capacity(num_shards);
-    for future in futures {
-        shards.push(future.await??);
     }
+
+    let mut shards = Vec::with_capacity(num_shards);
+    while let Some(result) = tasks.next().await {
+        shards.push(result?);
+    }
+
+    shards.sort_by_key(|(node_id, _)| *node_id);
+    let shards = shards.into_iter().map(|(_, data)| data).collect();
     
     Ok((shards, subcoset_index))
 }

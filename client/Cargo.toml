@@ -18,6 +18,7 @@ bincode = { workspace = true }
 m31jubjub = { workspace = true }
 rand = { workspace = true }
 p3-matrix = { workspace = true }
+futures = { workspace = true }
 
 primitives = { path = "../primitives" }
 common = { path = "../common" }
@@ -25,7 +26,7 @@ shards = { path = "../shards" }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["async_tokio"] }
-futures = "0.3.31"
+
 
 [[bench]]
 name = "throughput"

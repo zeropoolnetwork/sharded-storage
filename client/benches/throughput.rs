@@ -1,6 +1,8 @@
 use std::{collections::HashMap, future::Future};
 use std::hint::black_box;
 use std::sync::Arc;
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use client::{download_shards, recover_data};
 use common::{config::StorageConfig, node::Peer};
 use rand::prelude::SliceRandom;
@@ -15,7 +17,7 @@ const CLUSTER_IDS: &[&str] = &[
 const CONCURRENCY: &[usize] = &[1, 2, 4, 8, 16];
 const NUM_REQUESTS: usize = 10;
 
-#[tokio::main(worker_threads = 1000)]
+#[tokio::main]
 async fn main() {
     let client = common::node::NodeClient::new("http://45.131.67.89:8011");
     let peers = Arc::new(client.get_info().await.unwrap().peers);
@@ -26,20 +28,26 @@ async fn main() {
     
     for &concurrency in CONCURRENCY {
         let peers = peers.clone();
-        let tasks = (0..concurrency).map(move |_| {
+        let mut tasks = FuturesUnordered::new();
+        for _ in 0..concurrency {
+            let peers = peers.clone();
             let mut rng = rand::thread_rng();
             let cluster_id: ClusterId = CLUSTER_IDS.choose(&mut rng).unwrap().parse().unwrap();
-            let peers = peers.clone();
-            tokio::task::spawn(measure_throughput(move || test(peers.clone(), log_blowup_factor, cluster_id.clone()), NUM_REQUESTS))
-        });
+            tasks.push(measure_throughput(move || test(peers.clone(), log_blowup_factor, cluster_id.clone()), NUM_REQUESTS));
+        }
 
-        let results: Result<Vec<_>, _> = futures::future::join_all(tasks).await.into_iter().collect();
-        let (throughputs, avgs): (Vec<f32>, Vec<f32>) = results.unwrap().iter().cloned().unzip();
+        let mut results = Vec::new();
+        while let Some(result) = tasks.next().await {
+            results.push(result);
+        }
+
+        let (throughputs, avgs): (Vec<f32>, Vec<f32>) = results.into_iter().unzip();
         let total_throughput = throughputs.iter().sum::<f32>() as f32;
         let avg = avgs.iter().sum::<f32>() / concurrency as f32;
         let total_bytes = total_throughput * bytes_per_request as f32;
         let total_megabytes = total_bytes / 1024.0 / 1024.0;
-        
+
+
         println!(
             "concurrency: {}, total throughput: {:.2} MB/sec, avg request time: {:.2} sec",
             concurrency, total_megabytes, avg,

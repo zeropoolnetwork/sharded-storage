@@ -57,7 +57,10 @@ impl NodeClient {
 
     pub async fn download_cluster(&self, cluster_id: ClusterId) -> Result<Vec<Val>> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
+        let t_start = std::time::Instant::now();
         let response = self.client.get(&url).send().await?;
+        let t_end = t_start.elapsed();
+        // println!("    Response time {t_end:?}");
 
         if response.status().is_success() {
             let data = response.bytes().await?.to_vec();

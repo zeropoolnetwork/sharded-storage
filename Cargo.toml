@@ -51,5 +51,5 @@ toml = { version = "0.8.19" }
 m31jubjub = { git = "https://github.com/zeropoolnetwork/m31jubjub" }
 hex = "0.4.3"
 tower-http = "0.6.2"
-
+futures = "0.3.31"
 
