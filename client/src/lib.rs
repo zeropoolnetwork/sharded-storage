@@ -1,6 +1,4 @@
-use std::{fs, path::PathBuf};
-
-use clap::{Parser, Subcommand};
+use std::collections::HashMap;
 use color_eyre::{Report, Result};
 use common::{
     config::StorageConfig,
@@ -11,66 +9,18 @@ use common::{
 };
 use p3_matrix::dense::RowMajorMatrix;
 use primitives::Val;
-use rand::{Rng};
+use rand::{thread_rng, Rng};
 use shards::{
     compute_commitment, compute_subdomain_indexes,
     recover_original_data_from_subcoset,
 };
 use common::contract::{ClusterId, UploadClusterReq};
 use common::crypto::sign;
-use common::node::UploadMessage;
+use common::node::{Peer, UploadMessage};
 
-// TODO: libp2p client
 
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-    #[arg(short, long)]
-    validator_url: String,
-    #[arg(short, long)]
-    contract_url: String,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Upload {
-        #[arg(short, long)]
-        file: PathBuf,
-        #[arg(short, long)]
-        mnemonic: String,
-    },
-    Download {
-        #[arg(short, long)]
-        id: ClusterId,
-        #[arg(short, long)]
-        output: PathBuf,
-    },
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    let cli = Cli::parse();
-    let validator_client = NodeClient::new(&cli.validator_url);
-    let contract_client = MockContractClient::new(&cli.contract_url);
-
-    match cli.command {
-        Commands::Upload { file, mnemonic } => {
-            upload_file(file, &mnemonic, &validator_client, &contract_client).await?;
-        }
-        Commands::Download { id, output } => {
-            download_cluster(id, output, &validator_client).await?;
-        }
-    }
-
-    Ok(())
-}
-
-async fn upload_file(
-    file_path: PathBuf,
+pub async fn upload_cluster(
+    data: Vec<u8>,
     mnemonic: &str,
     validator: &NodeClient,
     contract: &MockContractClient,
@@ -78,15 +28,14 @@ async fn upload_file(
     let t_start = std::time::Instant::now();
 
     let storage_config = StorageConfig::dev();
-    let file_data = fs::read(&file_path)?;
 
-    if file_data.len() > storage_config.cluster_capacity_bytes() {
+    if data.len() > storage_config.cluster_capacity_bytes() {
         return Err(color_eyre::eyre::eyre!("File too large"));
     }
 
-    let serialized_data = bincode::serialize(&file_data)?;
+    let serialized_data = bincode::serialize(&data)?;
     let encoded_data = encode_aligned(&serialized_data, storage_config.cluster_size())?;
-    
+
     let (private_key, public_key) = derive_keys(mnemonic).unwrap();
     let signature = sign(&encoded_data, private_key);
 
@@ -103,7 +52,7 @@ async fn upload_file(
         owner_pk: public_key,
         commit: commit.pcs_commitment_hash,
     }).await?;
-    
+
     println!("Uploading file to cluster {}", cluster_id);
     validator
         .upload_cluster(cluster_id, UploadMessage {
@@ -121,23 +70,18 @@ async fn upload_file(
     Ok(())
 }
 
-async fn download_cluster(cluster_id: ClusterId, output: PathBuf, validator: &NodeClient) -> Result<()> {
-    let mut rng = rand::thread_rng();
 
-    let t_full_start = std::time::Instant::now();
-
+pub async fn download_shards(cluster_id: ClusterId, nodes: &HashMap<usize, Peer>) -> Result<(Vec<Vec<Val>>, usize)> {
     let storage_config = StorageConfig::dev();
-    let nodes = validator.get_info().await?.peers;
 
     let log_blowup_factor = storage_config.log_blowup_factor();
-    let subcoset_index = rng.gen_range(0..(1 << log_blowup_factor));
+    let subcoset_index = thread_rng().gen_range(0..(1 << log_blowup_factor));
     let subcoset_indices = compute_subdomain_indexes(
         subcoset_index,
         log_blowup_factor,
         storage_config.m.ilog2() as usize,
     );
 
-    let t_shards_start = std::time::Instant::now();
     let num_shards = subcoset_indices.len();
     let futures = subcoset_indices
         .iter()
@@ -147,7 +91,10 @@ async fn download_cluster(cluster_id: ClusterId, output: PathBuf, validator: &No
             let cluster_id = cluster_id.clone();
             tokio::spawn(async move {
                 let client = NodeClient::new(&node.api_url);
+                let t_start = std::time::Instant::now();
                 let data = client.download_cluster(cluster_id.clone()).await?;
+                let t_end = t_start.elapsed();
+                println!("Downloaded shard in {t_end:?}");
                 Ok::<_, Report>(data)
             })
         })
@@ -157,11 +104,12 @@ async fn download_cluster(cluster_id: ClusterId, output: PathBuf, validator: &No
     for future in futures {
         shards.push(future.await??);
     }
+    
+    Ok((shards, subcoset_index))
+}
 
-    let t_shards_end = t_shards_start.elapsed();
-    println!("Downloaded {num_shards} shards in {t_shards_end:?}");
-
-    let t_shards_recovery_start = std::time::Instant::now();
+pub fn recover_data(shards: Vec<Vec<Val>>, subcoset_index: usize, log_blowup_factor: usize) -> Result<Vec<u8>> {
+    let storage_config = StorageConfig::dev();
 
     let subcoset_data = RowMajorMatrix::new(
         shards.into_iter().flatten().collect(),
@@ -179,12 +127,5 @@ async fn download_cluster(cluster_id: ClusterId, output: PathBuf, validator: &No
     let reader = std::io::Cursor::new(decoded_data);
     let deserialized_data: Vec<u8> = bincode::deserialize_from(reader)?;
 
-    fs::write(output, &deserialized_data)?;
-
-    let t_shards_recovery_end = t_shards_recovery_start.elapsed();
-    println!("Recovered original data in {t_shards_recovery_end:?}");
-    let t_full_end = t_full_start.elapsed();
-    println!("Downloaded file in {t_full_end:?} total");
-
-    Ok(())
+    Ok(deserialized_data)
 }

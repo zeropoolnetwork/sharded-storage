@@ -1,4 +1,3 @@
-use p3_mersenne_31::Mersenne31;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]

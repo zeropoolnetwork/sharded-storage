@@ -3,6 +3,10 @@ name = "client"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "client"
+path = "src/lib.rs"
+
 [dependencies]
 color-eyre = { workspace = true }
 reqwest = { workspace = true, features = ["multipart", "json"] }
@@ -18,3 +22,11 @@ p3-matrix = { workspace = true }
 primitives = { path = "../primitives" }
 common = { path = "../common" }
 shards = { path = "../shards" }
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+futures = "0.3.31"
+
+[[bench]]
+name = "throughput"
+harness = false

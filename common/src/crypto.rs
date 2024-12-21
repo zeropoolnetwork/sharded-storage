@@ -5,7 +5,6 @@ use m31jubjub::{
     m31::{Fq, Fs, M31JubJubSigParams},
 };
 use serde::{Deserialize, Serialize};
-use serde::ser::SerializeTupleStruct;
 use primitives::Val;
 use serde_with::{DeserializeAs, SerializeAs};
 

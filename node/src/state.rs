@@ -7,6 +7,7 @@ use primitives::Val;
 use serde::{Deserialize, Serialize};
 use snapshot_db::db::SnapshotDb;
 use tokio::sync::{mpsc, RwLock};
+use common::contract::ClusterId;
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Peer {
@@ -19,7 +20,7 @@ pub type NodeId = u32;
 
 #[derive(Clone, Debug)]
 pub enum Command {
-    UploadCluster { index: u64, shards: Vec<Vec<Val>> },
+    UploadCluster { index: u64, id: ClusterId, shards: Vec<Vec<Val>> },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +46,7 @@ pub struct AppState {
     pub storage_config: StorageConfig,
     pub command_sender: mpsc::Sender<Command>,
     pub contract_client: MockContractClient,
+    pub cluster_id_cache: RwLock<HashMap<ClusterId, usize>>,
 }
 
 impl AppState {
@@ -57,14 +59,15 @@ impl AppState {
         contract_client: MockContractClient,
     ) -> Self {
         Self {
-            peers: RwLock::default(),
-            validators: RwLock::default(),
+            peers: Default::default(),
+            validators: Default::default(),
             node_state,
             sk,
             pk,
             storage_config,
             command_sender,
             contract_client,
+            cluster_id_cache: Default::default(),
         }
     }
 }

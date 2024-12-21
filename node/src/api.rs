@@ -23,18 +23,29 @@ async fn download_cluster(
 ) -> Result<Response, StatusCode> {
     let cluster_id: ClusterId = cluster_id.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    // TODO: cache
-    let cluster_metadata = state
-        .contract_client
-        .get_cluster(&cluster_id)
+    let cluster_index = if let Some(index) = state
+        .cluster_id_cache
+        .read()
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
+        .get(&cluster_id)
+    {
+        *index
+    } else {
+        let metadata = state
+            .contract_client
+            .get_cluster(&cluster_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let index = metadata.index as usize;
+        state.cluster_id_cache.write().await.insert(cluster_id.clone(), index);
+        index
+    };
+
     match &state.node_state {
         NodeState::Validator => Err(StatusCode::FORBIDDEN),
         NodeState::Storage { storage } => {
             let data = storage
-                .read(1, cluster_metadata.index as usize)
+                .read(1, cluster_index)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -87,6 +98,7 @@ async fn upload_cluster(
             .command_sender
             .send(Command::UploadCluster {
                 index: cluster_metadata.index,
+                id: cluster_id.clone(),
                 shards,
             })
             .await

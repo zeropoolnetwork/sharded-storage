@@ -1,4 +1,4 @@
-use p3_field::{AbstractField, PrimeField32, PrimeField64};
+use p3_field::{AbstractField, PrimeField32};
 use p3_mersenne_31::Mersenne31;
 
 #[derive(Debug)]

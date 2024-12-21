@@ -16,7 +16,7 @@ use libp2p::{
 use primitives::Val;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-
+use common::contract::ClusterId;
 use crate::state::{AppState, Command, NodeId, NodeKind, NodeState, Peer};
 
 #[derive(Debug, Clone)]
@@ -49,7 +49,9 @@ enum Req {
 
     // TODO: Separate this from the basic network messages.
     /// A request to upload a cluster.
-    UploadCluster { index: u64, data: Vec<Val> },
+    UploadCluster { index: u64, id: ClusterId, data: Vec<Val> },
+
+    DownloadCluster { index: u64 },
 }
 
 // TODO: Same naming for variants in Req and Res.
@@ -68,6 +70,8 @@ enum Res {
     UploadClusterSuccess,
     UploadClusterFailure,
     NewNodeAcknowledged,
+    DownloadClusterSuccess(Vec<u8>),
+    DownloadClusterFailure,
 }
 
 pub async fn start_network(
@@ -220,7 +224,7 @@ async fn process_event(
             request_response::Message::Request {
                 request, channel, ..
             } => {
-                tracing::debug!("Request from {}");
+                tracing::debug!("Request from {}", peer);
                 match request {
                     Req::InitNode {
                         kind,
@@ -290,7 +294,7 @@ async fn process_event(
                             );
                         }
                     }
-                    Req::UploadCluster { index, mut data, .. } => match &state.node_state {
+                    Req::UploadCluster { index, mut data, id } => match &state.node_state {
                         NodeState::Validator => {
                             tracing::warn!("Ignoring UploadCluster request in validator mode");
                             let _ = swarm
@@ -312,6 +316,8 @@ async fn process_event(
                                 .behaviour_mut()
                                 .request_response
                                 .send_response(channel, Res::UploadClusterSuccess);
+
+                            state.cluster_id_cache.write().await.insert(id, index as usize);
                         }
                     },
                     Req::NewNode { kind, peer } => {
@@ -330,6 +336,25 @@ async fn process_event(
                             .behaviour_mut()
                             .request_response
                             .send_response(channel, Res::NewNodeAcknowledged);
+                    }
+                    Req::DownloadCluster { index } => {
+                        tracing::debug!("Downloading cluster {}", index);
+                        match &state.node_state {
+                            NodeState::Validator => {
+                                tracing::warn!("Ignoring DownloadCluster request in validator mode");
+                                let _ = swarm
+                                    .behaviour_mut()
+                                    .request_response
+                                    .send_response(channel, Res::DownloadClusterFailure);
+                            }
+                            NodeState::Storage { storage } => {
+                                let data = storage.read(1, index as usize).await?;
+                                let _ = swarm
+                                    .behaviour_mut()
+                                    .request_response
+                                    .send_response(channel, Res::DownloadClusterSuccess(data));
+                            }
+                        }
                     }
                 }
             }
@@ -382,6 +407,7 @@ async fn process_event(
                     Res::UploadClusterFailure => {
                         tracing::error!("Cluster upload failed");
                     }
+                    _ => {}
                 }
             }
         },
@@ -398,7 +424,7 @@ async fn process_command(
     state: Arc<AppState>,
 ) -> Result<()> {
     match command {
-        Some(Command::UploadCluster { index, shards }) => {
+        Some(Command::UploadCluster { index, id, shards }) => {
             let peers = state.peers.read().await;
 
             for (shard_index, shard) in shards.into_iter().enumerate() {
@@ -408,7 +434,7 @@ async fn process_command(
                 swarm
                     .behaviour_mut()
                     .request_response
-                    .send_request(&peer.peer_id, Req::UploadCluster { index, data: shard });
+                    .send_request(&peer.peer_id, Req::UploadCluster { index, id: id.clone(), data: shard });
             }
 
             Ok(())
