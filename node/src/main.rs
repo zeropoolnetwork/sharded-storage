@@ -9,6 +9,7 @@ use color_eyre::eyre::Result;
 use common::{config::StorageConfig, contract::MockContractClient, crypto::derive_keys};
 use libp2p::{futures::StreamExt, swarm::NetworkBehaviour};
 use m31jubjub::hdwallet::{priv_key, pub_key};
+use primitives::Val;
 use serde::Serialize;
 use snapshot_db::db::{SnapshotDb, SnapshotDbConfig};
 
@@ -89,8 +90,7 @@ async fn main() -> Result<()> {
     let contract_mock_url = args
         .contract_mock_url
         .or(std::env::var("CONTRACT_MOCK_URL").ok())
-        .unwrap_or_else(|| "http://127.0.0.1:3001".to_string());
-    // .expect("Contract mock URL not set");
+        .expect("Contract mock URL not set");
 
     let node_kind = match node_id {
         Some(id) => NodeKind::Storage { id },
@@ -108,14 +108,14 @@ async fn main() -> Result<()> {
     };
 
     let storage_config = StorageConfig::dev();
-    let db_config = SnapshotDbConfig {
-        cluster_size: storage_config.cluster_size_bytes(),
-        num_clusters: storage_config.num_clusters(),
-    };
 
     let node_state = match node_kind {
         NodeKind::Validator => NodeState::Validator,
         NodeKind::Storage { id } => {
+            let db_config = SnapshotDbConfig {
+                cluster_size: storage_config.shard_size() * size_of::<Val>(), // FIXME: size of shard
+                num_clusters: storage_config.num_clusters(),
+            };
             let storage_dir =
                 std::env::var("STORAGE_DIR").unwrap_or_else(|_| "./data/storage".to_string());
             let storage = SnapshotDb::new(&storage_dir, db_config).await?;

@@ -19,7 +19,7 @@ pub type NodeId = u32;
 
 #[derive(Clone, Debug)]
 pub enum Command {
-    UploadCluster { id: u32, shards: Vec<Vec<Val>> },
+    UploadCluster { index: u64, shards: Vec<Vec<Val>> },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

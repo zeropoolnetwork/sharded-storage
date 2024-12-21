@@ -12,17 +12,17 @@ COPY sealing sealing
 COPY spora spora
 COPY shards shards
 COPY snapshotdb snapshotdb
-# FIXME: `cargo new` for each one of these:
-COPY node node
-COPY client client
+
+RUN USER=root cargo new node
+RUN USER=root cargo new contract-mock
+RUN USER=root cargo new client
 
 WORKDIR /app/contract-mock
-RUN USER=root cargo init --name contract-mock
 RUN cargo build --release
 
 # Build
 RUN rm src/*.rs
-RUN /bin/bash -c 'rm ../target/release/deps/contract_mock*'
+RUN /bin/bash -c 'rm ../target/release/deps/contract*'
 COPY contract-mock .
 RUN cargo build --release
 

@@ -1,41 +1,84 @@
-use std::net::SocketAddr;
-
+use std::str::FromStr;
 use color_eyre::Result;
 use primitives::{Hash, Val};
+use rand::random;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::crypto::PublicKey;
 
-// TODO: Implement an error type
-
-type LogicalSegmentId = Vec<Val>;
-type SlotId = u64;
-type SegmentId = [Val; 8];
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Slot {
-    pub owner_pk: PublicKey,
-    pub segments: Vec<SegmentId>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Segment {
-    pub slot: SlotId,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UploadSegmentReq {
-    pub segment: SegmentId,
-    pub slot: SlotId,
+pub struct Cluster {
+    pub index: u64,
     pub owner_pk: PublicKey,
     pub commit: Hash,
 }
 
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct ClusterId(pub [Val; 5]);
+
+impl ClusterId {
+    pub fn random() -> Self {
+        ClusterId(random())
+    }
+}
+
+impl FromStr for ClusterId {
+    type Err = hex::FromHexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut bytes = [0u8; 20];
+        hex::decode_to_slice(s, &mut bytes)?;
+        Ok(bytes.into())
+    }
+}
+
+impl std::fmt::Debug for ClusterId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let bytes: &[u8; 20] = self.as_ref();
+        write!(f, "{}", hex::encode(bytes))
+    }
+}
+
+impl std::fmt::Display for ClusterId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let bytes: &[u8; 20] = self.as_ref();
+        write!(f, "{}", hex::encode(bytes))
+    }
+}
+
+impl AsRef<[u8]> for ClusterId {
+    fn as_ref(&self) -> &[u8] {
+        &<ClusterId as AsRef<[u8; 20]>>::as_ref(self)[..]
+    }
+}
+
+impl AsRef<[u8; 20]> for ClusterId {
+    fn as_ref(&self) -> &[u8; 20] {
+        static_assertions::assert_eq_size!(ClusterId, [u8; 20]);
+        // Safety: enforced by the assertion above
+        unsafe { std::mem::transmute(&self.0) }
+    }
+}
+
+impl From<[u8; 20]> for ClusterId {
+    fn from(bytes: [u8; 20]) -> Self {
+        static_assertions::assert_eq_size!(ClusterId, [u8; 20]);
+        // Safety: enforced by the assertion above
+        ClusterId(unsafe { std::mem::transmute(bytes) })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct MockContractClient {
-    pub base_url: String,
-    pub client: Client,
+    base_url: String,
+    client: Client,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UploadClusterReq {
+    pub owner_pk: PublicKey,
+    pub commit: Hash,
 }
 
 impl MockContractClient {
@@ -52,26 +95,44 @@ impl MockContractClient {
         response.json().await.map_err(Into::into)
     }
 
-    pub async fn get_slot_segments(&self, slot_id: SlotId) -> Result<Vec<SegmentId>> {
-        let url = format!("{}/slots/{}/segments", self.base_url, slot_id);
-        let response = self.client.get(&url).send().await?;
-        response.json().await.map_err(Into::into)
-    }
+    pub async fn reserve_cluster(&self, cluster: UploadClusterReq) -> Result<ClusterId> {
+        #[derive(Deserialize)]
+        struct UploadClusterRes {
+            cluster_id: String,
+        }
 
-    pub async fn upload_segment(&self, req: UploadSegmentReq) -> Result<()> {
-        let url = format!("{}/reserve-segment", self.base_url);
-        self.client
+        let url = format!("{}/clusters", self.base_url);
+
+        // println!("url: {:?}", url);
+        // 
+        // let r = self
+        //     .client
+        //     .post(&url)
+        //     .json(&cluster)
+        //     .send()
+        //     .await;
+        // 
+        // println!("res: {:?}", r);
+        // 
+        // println!("text: {:?}", r?.text().await);
+
+        let response: UploadClusterRes = self
+            .client
             .post(&url)
-            .json(&req)
+            .json(&cluster)
             .send()
             .await?
-            .error_for_status()?;
-        Ok(())
+            .json()
+            .await?;
+
+        // println!("response: {:?}", response.cluster_id);
+
+        Ok(response.cluster_id.parse()?)
     }
 
-    pub async fn reserve_slot(&self, slot: Slot) -> Result<SlotId> {
-        let url = format!("{}/slots", self.base_url);
-        let response = self.client.post(&url).json(&slot).send().await?;
-        response.json().await.map_err(Into::into)
+    pub async fn get_cluster(&self, cluster_id: &ClusterId) -> Result<Cluster> {
+        let url = format!("{}/clusters/{}", self.base_url, cluster_id);
+        let response = self.client.get(&url).send().await?;
+        Ok(response.json().await?)
     }
 }

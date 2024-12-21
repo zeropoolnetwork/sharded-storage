@@ -8,6 +8,8 @@ use axum::{
     Json, Router,
 };
 use color_eyre::Result;
+use common::{contract::ClusterId, crypto::verify, encode::encode_aligned, node::UploadMessage};
+use m31jubjub::{eddsa::SigParams, m31::M31JubJubSigParams};
 use p3_matrix::dense::RowMajorMatrix;
 use primitives::Val;
 use serde_json::json;
@@ -17,13 +19,22 @@ use crate::state::{AppState, Command, NodeState};
 
 async fn download_cluster(
     state: axum::extract::State<Arc<AppState>>,
-    Path(cluster_id): Path<usize>,
+    Path(cluster_id): Path<String>,
 ) -> Result<Response, StatusCode> {
+    let cluster_id: ClusterId = cluster_id.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // TODO: cache
+    let cluster_metadata = state
+        .contract_client
+        .get_cluster(&cluster_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
     match &state.node_state {
         NodeState::Validator => Err(StatusCode::FORBIDDEN),
         NodeState::Storage { storage } => {
             let data = storage
-                .read(0, cluster_id)
+                .read(1, cluster_metadata.index as usize)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -37,24 +48,45 @@ async fn download_cluster(
 
 async fn upload_cluster(
     state: axum::extract::State<Arc<AppState>>,
-    Path(cluster_id): Path<u32>,
+    Path(cluster_id): Path<String>,
     mut multipart: Multipart,
 ) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
+    let cluster_id = cluster_id.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
     while let Some(field) = multipart
         .next_field()
         .await
         .map_err(|_| StatusCode::BAD_REQUEST)?
     {
+        let cluster_metadata = state
+            .contract_client
+            .get_cluster(&cluster_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
         let data = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-        let elements: Vec<Val> =
+        let msg: UploadMessage =
             bincode::deserialize(&data).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        let elements = encode_aligned(&msg.data, state.storage_config.cluster_size())
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        if !verify(&elements, msg.signature, cluster_metadata.owner_pk) {
+            tracing::debug!("Invalid signature");
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
         let matrix = RowMajorMatrix::new(elements, state.storage_config.m);
         let (commit, shards) = compute_commitment(matrix, state.storage_config.log_blowup_factor());
+
+        if cluster_metadata.commit != commit.pcs_commitment_hash {
+            tracing::debug!("Invalid commit");
+            return Err(StatusCode::BAD_REQUEST);
+        }
 
         state
             .command_sender
             .send(Command::UploadCluster {
-                id: cluster_id,
+                index: cluster_metadata.index,
                 shards,
             })
             .await
@@ -77,11 +109,12 @@ async fn get_info(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json
 pub async fn start_server(state: Arc<AppState>, addr: &str) -> Result<()> {
     let app = Router::new()
         .route(
-            "/cluster/:cluster_id",
+            "/clusters/:cluster_id",
             get(download_cluster).post(upload_cluster),
         )
         .route("/info", get(get_info))
         .route("/", get(get_info))
+        .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state.clone());
 
     let addr: SocketAddr = addr.parse()?;

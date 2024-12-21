@@ -9,7 +9,7 @@ pub struct StorageConfig {
     pub m: usize,
     /// rows after blowup
     pub q: usize,
-    /// number of sectors
+    /// number of clusters
     pub k: usize,
 }
 
@@ -40,11 +40,15 @@ impl StorageConfig {
         self.n * self.m
     }
 
-    pub fn cluster_size_bytes(&self) -> usize {
+    pub fn cluster_capacity_bytes(&self) -> usize {
         self.n * self.m * 30 / 8
     }
 
     pub fn log_blowup_factor(&self) -> usize {
         (self.q / self.m).ilog2() as usize
+    }
+
+    pub fn shard_size(&self) -> usize {
+        self.n
     }
 }

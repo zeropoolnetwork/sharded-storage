@@ -13,6 +13,7 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, StreamProtocol, Swarm,
 };
+use primitives::Val;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -48,9 +49,10 @@ enum Req {
 
     // TODO: Separate this from the basic network messages.
     /// A request to upload a cluster.
-    UploadCluster { id: u32, data: Vec<u8> },
+    UploadCluster { index: u64, data: Vec<Val> },
 }
 
+// TODO: Same naming for variants in Req and Res.
 #[derive(Debug, Serialize, Deserialize)]
 enum Res {
     /// The reply to an `InitNode` request. Contains needed network information.
@@ -63,6 +65,8 @@ enum Res {
     InitNodeFailure {
         error: String,
     },
+    UploadClusterSuccess,
+    UploadClusterFailure,
     NewNodeAcknowledged,
 }
 
@@ -92,8 +96,6 @@ pub async fn start_network(
         .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
         .build();
 
-    swarm.listen_on(format!("/ip4/0.0.0.0/udp/{}/quic-v1", config.p2p_port).parse()?)?;
-
     // TODO: Proper NAT traversal
     let full_external_addr = format!(
         "/ip4/{}/udp/{}/quic-v1",
@@ -101,6 +103,8 @@ pub async fn start_network(
     )
     .parse::<Multiaddr>()?
     .with(Protocol::P2p(*swarm.local_peer_id()));
+
+    swarm.listen_on(format!("/ip4/0.0.0.0/udp/{}/quic-v1", config.p2p_port).parse()?)?;
 
     if let Some(multiaddr) = &config.boot_node {
         tracing::info!("Bootstrapping from {}", multiaddr);
@@ -120,8 +124,6 @@ pub async fn start_network(
     let state = cloned_state;
 
     loop {
-        let event = swarm.select_next_some().await;
-
         // TODO: Check for heavy blockers inside of the loop
         let res: Result<()> = tokio::select! {
             event = swarm.select_next_some() => process_event(event, &mut swarm, state.clone(), &config).await,
@@ -182,6 +184,12 @@ async fn process_event(
                 local_addr
             );
         }
+        SwarmEvent::IncomingConnectionError { error, .. } => {
+            tracing::error!("Incoming connection error: {:?}", error);
+        }
+        SwarmEvent::OutgoingConnectionError { error, .. } => {
+            tracing::error!("Outgoing connection error: {:?}", error);
+        }
         SwarmEvent::ConnectionEstablished {
             peer_id, endpoint, ..
         } => {
@@ -212,56 +220,15 @@ async fn process_event(
             request_response::Message::Request {
                 request, channel, ..
             } => {
-                tracing::debug!("Request from {}: {:?}", peer, request);
+                tracing::debug!("Request from {}");
                 match request {
                     Req::InitNode {
                         kind,
                         api_url,
                         external_addr,
                     } => {
-                        // TODO: Check if there is an existing node with the same ID. Fail if it exists
-                        //       and the connection is valid (implement ping/heartbeat of some sort).
-
-                        let mut peers = state.peers.read().await.clone();
-                        let validators = state.validators.read().await.clone();
-
-                        match kind {
-                            NodeKind::Storage { id } => {
-                                if state.peers.read().await.contains_key(&id) {
-                                    let _ = swarm.behaviour_mut().request_response.send_response(
-                                        channel,
-                                        Res::InitNodeSuccess {
-                                            peers,
-                                            boot_node_kind: config.node_kind.clone(),
-                                            boot_node_public_api_url: config.public_api_url.clone(),
-                                            validators,
-                                        },
-                                    );
-                                    return Ok(());
-                                }
-                            }
-                            NodeKind::Validator => {
-                                // TODO: Replace linear search (PartialEq implementation on Peer)
-                                if state
-                                    .validators
-                                    .read()
-                                    .await
-                                    .iter()
-                                    .any(|p| p.peer_id == peer)
-                                {
-                                    let _ = swarm.behaviour_mut().request_response.send_response(
-                                        channel,
-                                        Res::InitNodeSuccess {
-                                            boot_node_kind: config.node_kind.clone(),
-                                            boot_node_public_api_url: config.public_api_url.clone(),
-                                            validators,
-                                            peers,
-                                        },
-                                    );
-                                    return Ok(());
-                                }
-                            }
-                        }
+                        let mut peers = state.peers.write().await;
+                        let mut validators = state.validators.write().await;
 
                         let peer_data = Peer {
                             peer_id: peer,
@@ -269,42 +236,82 @@ async fn process_event(
                             api_url: api_url.clone(),
                         };
 
-                        match kind {
+                        let (v, p) = match kind {
                             NodeKind::Storage { id } => {
-                                state.peers.write().await.insert(id, peer_data);
+                                peers.insert(id, peer_data.clone());
+                                (
+                                    validators.clone(),
+                                    peers
+                                        .iter()
+                                        .map(|(k, v)| (*k, v.clone()))
+                                        .filter(|(k, _)| *k != id)
+                                        .collect::<HashMap<_, _>>(),
+                                )
                             }
                             NodeKind::Validator => {
-                                state.validators.write().await.insert(peer_data);
+                                validators.insert(peer_data.clone());
+                                (
+                                    validators
+                                        .iter()
+                                        .cloned()
+                                        .filter(|p| p.peer_id != peer)
+                                        .collect(),
+                                    peers.clone(),
+                                )
                             }
-                        }
+                        };
 
+                        let _ = swarm.behaviour_mut().request_response.send_response(
+                            channel,
+                            Res::InitNodeSuccess {
+                                boot_node_kind: config.node_kind.clone(),
+                                boot_node_public_api_url: config.public_api_url.clone(),
+                                validators: v,
+                                peers: p,
+                            },
+                        );
+
+                        swarm.add_peer_address(peer, external_addr);
+
+                        // Notify all other nodes about the new node.
                         // Given that we have a full-mesh topology it should be ok to use request-response
                         // for broadcasting.
-                        for peer in state
-                            .peers
-                            .read()
-                            .await
+                        for peer in peers
                             .values()
+                            .chain(validators.iter())
                             .filter(|p| p.peer_id != peer)
-                            .chain(state.validators.read().await.iter())
                         {
                             swarm.behaviour_mut().request_response.send_request(
                                 &peer.peer_id,
-                                Req::InitNode {
+                                Req::NewNode {
                                     kind: kind.clone(),
-                                    api_url: api_url.clone(),
-                                    external_addr: external_addr.clone(),
+                                    peer: peer_data.clone(),
                                 },
                             );
                         }
                     }
-                    Req::UploadCluster { id, data, .. } => match &state.node_state {
+                    Req::UploadCluster { index, mut data, .. } => match &state.node_state {
                         NodeState::Validator => {
                             tracing::warn!("Ignoring UploadCluster request in validator mode");
+                            let _ = swarm
+                                .behaviour_mut()
+                                .request_response
+                                .send_response(channel, Res::UploadClusterFailure);
                         }
                         NodeState::Storage { storage } => {
-                            tracing::info!("Writing cluster {}", id);
-                            storage.write(id as usize, &data).await?;
+                            tracing::info!("Writing cluster {}", index);
+
+                            // Safety: Vec<Val> can be safely converted to Vec<u8> with length and capacity adjusted.
+                            let data = unsafe {
+                                data[..].align_to::<u8>().1.to_vec()
+                            };
+
+                            storage.write(index as usize, &data).await?;
+
+                            let _ = swarm
+                                .behaviour_mut()
+                                .request_response
+                                .send_response(channel, Res::UploadClusterSuccess);
                         }
                     },
                     Req::NewNode { kind, peer } => {
@@ -327,7 +334,7 @@ async fn process_event(
                 }
             }
             request_response::Message::Response { response, .. } => {
-                tracing::debug!("Response from {}: {:?}", peer, response);
+                tracing::info!("Response from {}: {:?}", peer, response);
                 match response {
                     Res::InitNodeSuccess {
                         boot_node_kind,
@@ -360,13 +367,20 @@ async fn process_event(
                                 });
                             }
                         }
+
+                        tracing::info!("Node initialized successfully");
                     }
                     Res::InitNodeFailure { error } => {
-                        // TODO: Retry
                         panic!("InitNode failed: {}", error);
                     }
                     Res::NewNodeAcknowledged => {
                         tracing::debug!("New node acknowledged by {}", peer);
+                    }
+                    Res::UploadClusterSuccess => {
+                        tracing::debug!("Cluster uploaded successfully");
+                    }
+                    Res::UploadClusterFailure => {
+                        tracing::error!("Cluster upload failed");
                     }
                 }
             }
@@ -384,18 +398,17 @@ async fn process_command(
     state: Arc<AppState>,
 ) -> Result<()> {
     match command {
-        Some(Command::UploadCluster { id, shards }) => {
+        Some(Command::UploadCluster { index, shards }) => {
             let peers = state.peers.read().await;
 
             for (shard_index, shard) in shards.into_iter().enumerate() {
                 let peer = peers
                     .get(&(shard_index as u32))
                     .ok_or_else(|| Error::msg("Peer not found"))?;
-                let data = bincode::serialize(&shard)?;
                 swarm
                     .behaviour_mut()
                     .request_response
-                    .send_request(&peer.peer_id, Req::UploadCluster { id, data });
+                    .send_request(&peer.peer_id, Req::UploadCluster { index, data: shard });
             }
 
             Ok(())

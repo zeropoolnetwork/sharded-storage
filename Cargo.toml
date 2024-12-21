@@ -49,5 +49,7 @@ tokio = "1.40.0"
 base64 = "0.22.1"
 toml = { version = "0.8.19" }
 m31jubjub = { git = "https://github.com/zeropoolnetwork/m31jubjub" }
+hex = "0.4.3"
+tower-http = "0.6.2"
 
 

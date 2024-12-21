@@ -1,116 +1,105 @@
-use std::{collections::HashMap, fmt::Display, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, fmt::Display, net::SocketAddr, ops::Deref, sync::Arc};
 
 use axum::{
+    extract::Path,
     http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
 use color_eyre::eyre::Result;
-use common::crypto::PublicKey;
-use primitives::{Hash, Val};
-use rand::{random, Rng};
+use common::{
+    contract::{Cluster, ClusterId},
+    crypto::PublicKey,
+};
+use primitives::Hash;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::RwLock;
 
-type SlotId = u64;
+const STATE_PATH: &str = "data/contract_mock_state.bin";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Slot {
-    owner_pk: PublicKey,
-    segments: Vec<SegmentId>,
-}
-type SegmentId = [Val; 5];
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct Segment {
-    slot: SlotId,
-    segment: usize,
-}
-
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AppState {
-    // Assume that we have a single volume for now.
-    slots: RwLock<Vec<Slot>>,
-    segments: RwLock<HashMap<SegmentId, Segment>>,
+    clusters: Vec<Cluster>,
+    cluster_indices: HashMap<ClusterId, usize>,
 }
 
 #[derive(Deserialize)]
-struct UploadSegmentReq {
-    slot: SlotId,
+struct UploadClusterReq {
     owner_pk: PublicKey,
     commit: Hash,
 }
 
-#[derive(Deserialize)]
-struct UploadSegmentRes {
-    segment_id: SegmentId,
+#[derive(Serialize, Deserialize)]
+struct UploadClusterRes {
+    cluster_id: String,
 }
 
-// Prepares segment for upload
-async fn upload_segment(
-    state: axum::extract::State<Arc<AppState>>,
-    form: Json<UploadSegmentReq>,
-) -> Result<(), StatusCode> {
-    let mut slots = state.slots.write().await;
+async fn reserve_cluster(
+    state: axum::extract::State<Arc<RwLock<AppState>>>,
+    form: Json<UploadClusterReq>,
+) -> Result<Json<UploadClusterRes>, StatusCode> {
+    let cluster_id = ClusterId::random();
 
-    let mut slot = slots
-        .iter_mut()
-        .find(|slot| slot.owner_pk == form.owner_pk)
-        .ok_or(StatusCode::BAD_REQUEST)?;
+    let mut state = state.write().await;
+    let cur_cluster_index = state.clusters.len();
 
-    let segment_id = random();
+    let cluster = Cluster {
+        index: cur_cluster_index as u64,
+        owner_pk: form.owner_pk,
+        commit: form.commit,
+    };
 
-    slot.segments.push(segment_id);
-    state.segments.write().await.insert(
-        segment_id,
-        Segment {
-            slot: form.slot,
-            segment: slot.segments.len() - 1,
-        },
-    );
+    state.clusters.push(cluster);
+    state
+        .cluster_indices
+        .insert(cluster_id.clone(), cur_cluster_index);
 
-    Ok(())
+    tracing::info!("Reserved cluster {}", cluster_id);
+
+    // dump the state to disk, ok for a mock
+    let mut file =
+        std::fs::File::create(STATE_PATH).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    bincode::serialize_into(&mut file, state.deref())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(UploadClusterRes {
+        cluster_id: cluster_id.to_string(),
+    }))
 }
 
-async fn slot_segments(
-    state: axum::extract::State<Arc<AppState>>,
-    axum::extract::Path(slot_id): axum::extract::Path<SlotId>,
-) -> Result<Json<Vec<SegmentId>>, StatusCode> {
-    let slot = state
-        .slots
-        .read()
-        .await
-        .get(slot_id as usize)
-        .cloned()
+#[axum::debug_handler]
+async fn get_cluster(
+    state: axum::extract::State<Arc<RwLock<AppState>>>,
+    Path(cluster_id): Path<String>,
+) -> Result<Json<Cluster>, StatusCode> {
+    let state = state.read().await;
+    let cluster_id = cluster_id.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let clusters_index = *state
+        .cluster_indices
+        .get(&cluster_id)
         .ok_or(StatusCode::NOT_FOUND)?;
-    let segments = slot.segments.clone();
-
-    Ok(Json(segments.clone()))
+    let cluster: &Cluster = state
+        .clusters
+        .get(clusters_index)
+        .ok_or(StatusCode::NOT_FOUND)?;
+    Ok(Json(cluster.clone()))
 }
 
-async fn info_handler(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json::Value> {
+async fn info_handler(
+    state: axum::extract::State<Arc<RwLock<AppState>>>,
+) -> Json<serde_json::Value> {
     Json(json!({
         "status": "OK",
     }))
 }
 
-pub async fn reserve_slot(
-    state: axum::extract::State<Arc<AppState>>,
-    form: Json<Slot>,
-) -> Result<Json<u64>, StatusCode> {
-    let mut slots = state.slots.write().await;
-    let next_slot = slots.len();
-    slots.push(form.0.clone());
-
-    Ok((next_slot as u64).into())
-}
-
-pub async fn start_server(state: Arc<AppState>, addr: &str) -> color_eyre::Result<()> {
+pub async fn start_server(state: Arc<RwLock<AppState>>, addr: &str) -> color_eyre::Result<()> {
     let app = Router::new()
         .route("/info", get(info_handler))
-        .route("/slots/:id/segments", get(slot_segments))
-        .route("/slots", post(reserve_slot))
-        .route("/reserve-segment", post(upload_segment))
+        .route("/clusters", post(reserve_cluster))
+        .route("/clusters/:cluster_id", get(get_cluster))
+        .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state.clone());
 
     let addr: SocketAddr = addr.parse()?;
@@ -126,10 +115,29 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     tracing_subscriber::fmt::init();
 
-    let state = Arc::new(AppState {
-        slots: Default::default(),
-        segments: Default::default(),
-    });
+    let state_res: Result<AppState> = std::fs::read(STATE_PATH)
+        .map_err(|err| color_eyre::eyre::eyre!("Failed to read state from disk: {}", err))
+        .and_then(|data| {
+            bincode::deserialize(&data)
+                .map_err(|err| color_eyre::eyre::eyre!("Failed to deserialize state: {}", err))
+        });
+    let state = match state_res {
+        Ok(state) => {
+            tracing::info!("Loaded state from disk. Clusters in state: {}", state.clusters.len());
+            state
+        },
+        Err(err) => {
+            tracing::warn!("{}. New state initialized.", err);
+            AppState {
+                clusters: Vec::new(),
+                cluster_indices: HashMap::new(),
+            }
+        }
+    };
+
+    let state = Arc::new(RwLock::new(state));
+
+    tracing::info!("Listening on 0.0.0.0:80");
     start_server(state, "0.0.0.0:80").await?;
 
     Ok(())
