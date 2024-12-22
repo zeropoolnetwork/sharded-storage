@@ -82,10 +82,10 @@ pub struct UploadClusterReq {
 }
 
 impl MockContractClient {
-    pub fn new(url: &str) -> Self {
+    pub fn new(url: &str, client: Client) -> Self {
         MockContractClient {
             base_url: url.to_string(),
-            client: Client::new(),
+            client,
         }
     }
 

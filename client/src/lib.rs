@@ -1,25 +1,20 @@
 use std::collections::HashMap;
+
 use color_eyre::{Report, Result};
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
 use common::{
     config::StorageConfig,
-    contract::MockContractClient,
-    crypto::derive_keys,
+    contract::{ClusterId, MockContractClient, UploadClusterReq},
+    crypto::{derive_keys, sign},
     encode::{decode, encode_aligned},
-    node::NodeClient,
+    node::{NodeClient, Peer, UploadMessage},
 };
+use futures::{stream::FuturesUnordered, StreamExt};
 use p3_matrix::dense::RowMajorMatrix;
 use primitives::Val;
 use rand::{thread_rng, Rng};
-use shards::{
-    compute_commitment, compute_subdomain_indexes,
-    recover_original_data_from_subcoset,
-};
-use common::contract::{ClusterId, UploadClusterReq};
-use common::crypto::sign;
-use common::node::{Peer, UploadMessage};
-
+use reqwest::Client;
+use shards::{compute_commitment, compute_subdomain_indexes, recover_original_data_from_subcoset};
+use tracing::instrument;
 
 pub async fn upload_cluster(
     data: Vec<u8>,
@@ -50,17 +45,22 @@ pub async fn upload_cluster(
 
     let t_upload_start = std::time::Instant::now();
     // TODO: Ability to overwrite existing clusters
-    let cluster_id = contract.reserve_cluster(UploadClusterReq {
-        owner_pk: public_key,
-        commit: commit.pcs_commitment_hash,
-    }).await?;
+    let cluster_id = contract
+        .reserve_cluster(UploadClusterReq {
+            owner_pk: public_key,
+            commit: commit.pcs_commitment_hash,
+        })
+        .await?;
 
     println!("Uploading file to cluster {}", cluster_id);
     validator
-        .upload_cluster(cluster_id, UploadMessage {
-            data: serialized_data,
-            signature,
-        })
+        .upload_cluster(
+            cluster_id,
+            UploadMessage {
+                data: serialized_data,
+                signature,
+            },
+        )
         .await?;
 
     let t_upload_end = t_upload_start.elapsed();
@@ -72,8 +72,12 @@ pub async fn upload_cluster(
     Ok(())
 }
 
-
-pub async fn download_shards(cluster_id: ClusterId, nodes: &HashMap<usize, Peer>) -> Result<(Vec<Vec<Val>>, usize)> {
+#[instrument(skip(nodes))]
+pub async fn download_shards(
+    cluster_id: ClusterId,
+    nodes: &HashMap<usize, Peer>,
+    client: Client,
+) -> Result<(Vec<Vec<Val>>, usize)> {
     let storage_config = StorageConfig::dev();
 
     let log_blowup_factor = storage_config.log_blowup_factor();
@@ -89,9 +93,10 @@ pub async fn download_shards(cluster_id: ClusterId, nodes: &HashMap<usize, Peer>
     for node_id in subcoset_indices.into_iter().take(storage_config.m) {
         let node = nodes[&node_id].clone();
         let cluster_id = cluster_id.clone();
+        let client = client.clone();
         tasks.push(async move {
-            let client = NodeClient::new(&node.api_url);
-            let data = client.download_cluster(cluster_id.clone()).await?;
+            let node_client = NodeClient::new(&node.api_url, client.clone());
+            let data = node_client.download_cluster(cluster_id.clone()).await?;
             Ok::<_, Report>((node_id, data))
         })
     }
@@ -103,17 +108,20 @@ pub async fn download_shards(cluster_id: ClusterId, nodes: &HashMap<usize, Peer>
 
     shards.sort_by_key(|(node_id, _)| *node_id);
     let shards = shards.into_iter().map(|(_, data)| data).collect();
-    
+
     Ok((shards, subcoset_index))
 }
 
-pub fn recover_data(shards: Vec<Vec<Val>>, subcoset_index: usize, log_blowup_factor: usize) -> Result<Vec<u8>> {
+#[instrument(skip_all)]
+pub fn recover_data(
+    shards: Vec<Vec<Val>>,
+    subcoset_index: usize,
+    log_blowup_factor: usize,
+) -> Result<Vec<u8>> {
     let storage_config = StorageConfig::dev();
 
-    let subcoset_data = RowMajorMatrix::new(
-        shards.into_iter().flatten().collect(),
-        storage_config.n,
-    );
+    let subcoset_data =
+        RowMajorMatrix::new(shards.into_iter().flatten().collect(), storage_config.n);
 
     let recovered_data =
         recover_original_data_from_subcoset(subcoset_data, subcoset_index, log_blowup_factor);

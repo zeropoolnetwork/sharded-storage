@@ -4,6 +4,7 @@ use color_eyre::Result;
 use primitives::Val;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tracing::Instrument;
 use crate::contract::ClusterId;
 use crate::crypto::Signature;
 
@@ -33,12 +34,13 @@ pub struct NodeClient {
 }
 
 impl NodeClient {
-    pub fn new(base_url: &str) -> Self {
+    pub fn new(base_url: &str, client: Client) -> Self {
         NodeClient {
             base_url: base_url.to_string(),
-            client: Client::new(),
+            client,
         }
     }
+
     #[tracing::instrument(skip(self, msg))]
     pub async fn upload_cluster(&self, cluster_id: ClusterId, msg: UploadMessage) -> Result<()> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
@@ -59,7 +61,8 @@ impl NodeClient {
     pub async fn download_cluster(&self, cluster_id: ClusterId) -> Result<Vec<Val>> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
 
-        let response = self.client.get(&url).send().await?;
+        let span = tracing::info_span!("download_cluster GET", cluster_id = %cluster_id, url = %url);
+        let response = self.client.get(&url).send().instrument(span).await?;
 
         if response.status().is_success() {
             let data = response.bytes().await?.to_vec();

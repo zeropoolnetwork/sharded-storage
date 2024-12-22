@@ -1,11 +1,16 @@
 use std::{collections::HashMap, future::Future};
 use std::hint::black_box;
 use std::sync::Arc;
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use client::{download_shards, recover_data};
 use common::{config::StorageConfig, node::Peer};
 use rand::prelude::SliceRandom;
+use reqwest::Client;
 use tokio::time::{Duration, Instant};
+use tracing_subscriber::fmt::format::FmtSpan;
 use common::contract::ClusterId;
+use common::node::NodeClient;
 use primitives::Val;
 
 const CLUSTER_IDS: &[&str] = &[
@@ -22,13 +27,23 @@ const CLUSTER_IDS: &[&str] = &[
     "b8186e0e1806966514ea8d45b3eb3e7681bdf974",
     "c544b2178af4a4428cd1e12ca26d6428e3d24276",
 ];
-const CONCURRENCY: &[usize] = &[1, 2, 4, 8, 16];
+const CONCURRENCY: &[usize] = &[1, 4, 8, 16, 32];
 const NUM_REQUESTS: usize = 10;
+
+const VALIDATOR_URL: &str = "http://45.131.67.89:8011";
 
 #[tokio::main]
 async fn main() {
-    let client = common::node::NodeClient::new("http://45.131.67.89:8011");
-    let peers = Arc::new(client.get_info().await.unwrap().peers);
+    // tracing_subscriber::fmt::fmt()
+    //     .with_span_events(FmtSpan::CLOSE)
+    //     .init();
+
+    let client = Client::builder()
+        // .pool_max_idle_per_host(0)
+        .build()
+        .unwrap();
+    let validator = NodeClient::new(VALIDATOR_URL, client.clone());
+    let peers = Arc::new(validator.get_info().await.unwrap().peers);
     let config = StorageConfig::dev();
     let log_blowup_factor = config.log_blowup_factor();
     
@@ -36,27 +51,18 @@ async fn main() {
     
     for &concurrency in CONCURRENCY {
         let peers = peers.clone();
-        let mut tasks = Vec::new();
-        for _ in 0..concurrency {
+        let mut tasks = FuturesUnordered::new();
+        for client_index in 0..concurrency {
             let peers = peers.clone();
             let mut rng = rand::thread_rng();
             let cluster_id: ClusterId = CLUSTER_IDS.choose(&mut rng).unwrap().parse().unwrap();
-
-            tasks.push(std::thread::spawn(move || {
-                let runtime = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap();
-
-                runtime.block_on(async move {
-                    measure_throughput(move || test(peers.clone(), log_blowup_factor, cluster_id.clone()), NUM_REQUESTS).await
-                })
-            }));
+            let client = client.clone();
+            tasks.push(measure_throughput(move || test(peers.clone(), log_blowup_factor, cluster_id.clone(), client.clone()), NUM_REQUESTS));
         }
 
         let mut results = Vec::new();
-        for handle in tasks {
-            results.push(handle.join().unwrap());
+        while let Some(result) = tasks.next().await {
+            results.push(result);
         }
 
         let (throughputs, avgs): (Vec<f32>, Vec<f32>) = results.into_iter().unzip();
@@ -64,7 +70,6 @@ async fn main() {
         let avg = avgs.iter().sum::<f32>() / concurrency as f32;
         let total_bytes = total_throughput * bytes_per_request as f32;
         let total_megabytes = total_bytes / 1024.0 / 1024.0;
-
 
         println!(
             "concurrency: {}, total throughput: {:.2} MB/sec, avg request time: {:.2} sec",
@@ -84,20 +89,21 @@ where
     let start = Instant::now();
 
     for _ in 0..num_requests {
+        let start = Instant::now();
         func().await;
+        timings.push(start.elapsed());
     }
 
-    let elapsed = start.elapsed();
-    timings.push(elapsed);
+    let total_time = start.elapsed();
 
-    let throughput = num_requests as f32 / elapsed.as_secs_f32();
+    let throughput = num_requests as f32 / total_time.as_secs_f32();
     let avg = timings.iter().sum::<Duration>() / num_requests as u32;
 
     (throughput, avg.as_secs_f32())
 }
 
-async fn test(peers: Arc<HashMap<usize, Peer>>, log_blowup_factor: usize, cluster_id: ClusterId) {
-    let (shards, subcoset_index) = download_shards(cluster_id, &peers).await.unwrap();
+async fn test(peers: Arc<HashMap<usize, Peer>>, log_blowup_factor: usize, cluster_id: ClusterId, client: Client) {
+    let (shards, subcoset_index) = download_shards(cluster_id, &peers, client).await.unwrap();
     let data = recover_data(shards, subcoset_index, log_blowup_factor).unwrap();
     black_box(data);
 }

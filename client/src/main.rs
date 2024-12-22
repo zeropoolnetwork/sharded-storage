@@ -12,7 +12,9 @@ use common::{
 use p3_matrix::dense::RowMajorMatrix;
 use primitives::Val;
 use rand::{Rng};
+use reqwest::Client;
 use tracing_subscriber::fmt::format::FmtSpan;
+use client::{download_shards, recover_data};
 use shards::{
     compute_commitment, compute_subdomain_indexes,
     recover_original_data_from_subcoset,
@@ -57,20 +59,22 @@ async fn main() -> Result<()> {
 
     tracing_subscriber::fmt::fmt()
         .with_span_events(FmtSpan::CLOSE)
-        .with_target(false)
-        .with_level(false)
         .init();
 
+    let client = Client::builder()
+        .pool_max_idle_per_host(0)
+        .build()?;
+
     let cli = Cli::parse();
-    let validator_client = NodeClient::new(&cli.validator_url);
-    let contract_client = MockContractClient::new(&cli.contract_url);
+    let validator_client = NodeClient::new(&cli.validator_url, client.clone());
+    let contract_client = MockContractClient::new(&cli.contract_url, client.clone());
 
     match cli.command {
         Commands::Upload { file, mnemonic } => {
             upload_file(file, &mnemonic, &validator_client, &contract_client).await?;
         }
         Commands::Download { id, output } => {
-            download_cluster(id, output, &validator_client).await?;
+            download_cluster(id, output, &validator_client, client).await?;
         }
     }
 
@@ -131,70 +135,17 @@ async fn upload_file(
     Ok(())
 }
 
-async fn download_cluster(cluster_id: ClusterId, output: PathBuf, validator: &NodeClient) -> Result<()> {
-    let mut rng = rand::thread_rng();
-
-    let t_full_start = std::time::Instant::now();
-
+async fn download_cluster(cluster_id: ClusterId, output: PathBuf, validator: &NodeClient, client: Client) -> Result<()> {
     let storage_config = StorageConfig::dev();
     let nodes = validator.get_info().await?.peers;
 
-    let log_blowup_factor = storage_config.log_blowup_factor();
-    let subcoset_index = rng.gen_range(0..(1 << log_blowup_factor));
-    let subcoset_indices = compute_subdomain_indexes(
-        subcoset_index,
-        log_blowup_factor,
-        storage_config.m.ilog2() as usize,
-    );
+    let (shards, subcoset_index) =
+        download_shards(cluster_id, &nodes, client).await?;
+    let data =
+        recover_data(shards, subcoset_index, storage_config.log_blowup_factor())?;
 
-    let t_shards_start = std::time::Instant::now();
-    let num_shards = subcoset_indices.len();
-    let futures = subcoset_indices
-        .iter()
-        .take(storage_config.m)
-        .map(|node_id| {
-            let node = nodes[node_id].clone();
-            let cluster_id = cluster_id.clone();
-            tokio::spawn(async move {
-                let client = NodeClient::new(&node.api_url);
-                let data = client.download_cluster(cluster_id.clone()).await?;
-                Ok::<_, Report>(data)
-            })
-        })
-        .collect::<Vec<_>>();
+    fs::write(output.clone(), &data)?;
 
-    let mut shards: Vec<Vec<Val>> = Vec::with_capacity(num_shards);
-    for future in futures {
-        shards.push(future.await??);
-    }
-
-    let t_shards_end = t_shards_start.elapsed();
-    println!("Downloaded {num_shards} shards in {t_shards_end:?}");
-
-    let t_shards_recovery_start = std::time::Instant::now();
-
-    let subcoset_data = RowMajorMatrix::new(
-        shards.into_iter().flatten().collect(),
-        storage_config.n,
-    );
-
-    let recovered_data =
-        recover_original_data_from_subcoset(subcoset_data, subcoset_index, log_blowup_factor);
-
-    let decoded_data = decode(
-        &recovered_data.values,
-        storage_config.cluster_capacity_bytes(),
-    );
-
-    let reader = std::io::Cursor::new(decoded_data);
-    let deserialized_data: Vec<u8> = bincode::deserialize_from(reader)?;
-
-    fs::write(output, &deserialized_data)?;
-
-    let t_shards_recovery_end = t_shards_recovery_start.elapsed();
-    println!("Recovered original data in {t_shards_recovery_end:?}");
-    let t_full_end = t_full_start.elapsed();
-    println!("Downloaded file in {t_full_end:?} total");
 
     Ok(())
 }

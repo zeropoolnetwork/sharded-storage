@@ -17,6 +17,7 @@ bincode = { workspace = true }
 rand = { workspace = true }
 p3-matrix = { workspace = true }
 futures = { workspace = true }
+reqwest = { workspace = true }
 
 primitives = { path = "../primitives" }
 common = { path = "../common" }

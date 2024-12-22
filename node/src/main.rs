@@ -9,6 +9,7 @@ use color_eyre::eyre::Result;
 use common::{config::StorageConfig, contract::MockContractClient, crypto::derive_keys};
 use libp2p::{futures::StreamExt, swarm::NetworkBehaviour};
 use m31jubjub::hdwallet::{priv_key, pub_key};
+use reqwest::Client;
 use primitives::Val;
 use serde::Serialize;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -126,7 +127,8 @@ async fn main() -> Result<()> {
         }
     };
 
-    let contract_client = MockContractClient::new(&contract_mock_url);
+    let client = Client::new();
+    let contract_client = MockContractClient::new(&contract_mock_url, client);
 
     let (command_sender, command_receiver) = tokio::sync::mpsc::channel(COMMAND_CHANNEL_CAPACITY);
     let state = Arc::new(AppState::new(
