@@ -108,6 +108,12 @@ pub async fn start_network(
     .parse::<Multiaddr>()?
     .with(Protocol::P2p(*swarm.local_peer_id()));
 
+    // dump the address to file
+    match config.node_kind {
+        NodeKind::Validator => std::fs::write("data/validator_addr", full_external_addr.to_string())?,
+        NodeKind::Storage { id } => std::fs::write(format!("data/node{}_addr", id), full_external_addr.to_string())?,
+    }
+
     swarm.listen_on(format!("/ip4/0.0.0.0/udp/{}/quic-v1", config.p2p_port).parse()?)?;
 
     if let Some(multiaddr) = &config.boot_node {
