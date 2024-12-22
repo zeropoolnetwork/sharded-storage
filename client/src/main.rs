@@ -21,7 +21,8 @@ use common::contract::{ClusterId, UploadClusterReq};
 use common::crypto::sign;
 use common::node::UploadMessage;
 
-// TODO: libp2p client
+// TODO: Fully libp2p based client
+// TODO: tracing
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -113,7 +114,7 @@ async fn upload_file(
     
     println!("Uploading file to cluster {}", cluster_id);
     validator
-        .upload_cluster(cluster_id, UploadMessage {
+        .upload_cluster(cluster_id.clone(), UploadMessage {
             data: serialized_data,
             signature,
         })
@@ -124,6 +125,8 @@ async fn upload_file(
     println!("Uploaded file in {t_upload_end:?}");
     let t_end = t_start.elapsed();
     println!("Total time: {t_end:?}");
+
+    println!("{cluster_id}");
 
     Ok(())
 }

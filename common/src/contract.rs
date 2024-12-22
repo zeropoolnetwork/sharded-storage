@@ -89,12 +89,14 @@ impl MockContractClient {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_info(&self) -> Result<serde_json::Value> {
         let url = format!("{}/info", self.base_url);
         let response = self.client.get(&url).send().await?;
         response.json().await.map_err(Into::into)
     }
 
+    #[tracing::instrument(skip(self, cluster))]
     pub async fn reserve_cluster(&self, cluster: UploadClusterReq) -> Result<ClusterId> {
         #[derive(Deserialize)]
         struct UploadClusterRes {
@@ -102,19 +104,6 @@ impl MockContractClient {
         }
 
         let url = format!("{}/clusters", self.base_url);
-
-        // println!("url: {:?}", url);
-        // 
-        // let r = self
-        //     .client
-        //     .post(&url)
-        //     .json(&cluster)
-        //     .send()
-        //     .await;
-        // 
-        // println!("res: {:?}", r);
-        // 
-        // println!("text: {:?}", r?.text().await);
 
         let response: UploadClusterRes = self
             .client
@@ -125,11 +114,10 @@ impl MockContractClient {
             .json()
             .await?;
 
-        // println!("response: {:?}", response.cluster_id);
-
         Ok(response.cluster_id.parse()?)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_cluster(&self, cluster_id: &ClusterId) -> Result<Cluster> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
         let response = self.client.get(&url).send().await?;

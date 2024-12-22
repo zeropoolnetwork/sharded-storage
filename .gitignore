@@ -43,3 +43,4 @@
 # but ignoring it in subdirectories. Adjust if needed for your specific setup.
 
 /data/
+/reports/

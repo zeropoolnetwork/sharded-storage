@@ -39,7 +39,7 @@ impl NodeClient {
             client: Client::new(),
         }
     }
-    #[tracing::instrument]
+    #[tracing::instrument(skip(self, msg))]
     pub async fn upload_cluster(&self, cluster_id: ClusterId, msg: UploadMessage) -> Result<()> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
         let data = bincode::serialize(&msg)?;
@@ -55,7 +55,7 @@ impl NodeClient {
         }
     }
 
-    #[tracing::instrument]
+    #[tracing::instrument(skip(self))]
     pub async fn download_cluster(&self, cluster_id: ClusterId) -> Result<Vec<Val>> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
 
@@ -72,7 +72,7 @@ impl NodeClient {
         }
     }
 
-    #[tracing::instrument]
+    #[tracing::instrument(skip(self))]
     pub async fn get_info(&self) -> Result<InfoResponse> {
         let url = format!("{}/info", self.base_url);
         let response = self.client.get(&url).send().await?;
