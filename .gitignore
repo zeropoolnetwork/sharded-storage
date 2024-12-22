@@ -41,3 +41,6 @@
 
 # Note: We're tracking Cargo.lock in the root for workspace consistency,
 # but ignoring it in subdirectories. Adjust if needed for your specific setup.
+
+/data/
+/reports/

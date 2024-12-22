@@ -1,0 +1,31 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "client"
+path = "src/lib.rs"
+
+[dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+color-eyre = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+bincode = { workspace = true }
+rand = { workspace = true }
+p3-matrix = { workspace = true }
+futures = { workspace = true }
+
+primitives = { path = "../primitives" }
+common = { path = "../common" }
+shards = { path = "../shards" }
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+
+
+[[bench]]
+name = "throughput"
+harness = false

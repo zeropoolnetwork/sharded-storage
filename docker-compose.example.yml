@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  contract-mock:
+    build:
+      dockerfile: ./contract-mock/Dockerfile
+    ports:
+      - "8010:80"
+    container_name: contract-mock
+    volumes:
+      - contract-mock-data:/app/data
+  
+  validator:
+    build:
+      dockerfile: ./node/Dockerfile
+    container_name: validator
+    environment:
+      - API_ADDR=0.0.0.0:8011
+      - PUBLIC_API_URL=http://127.0.0.1:8011
+      - EXTERNAL_IP=127.0.0.1
+      - P2P_PORT=30333
+      - SEED_PHRASE=test test test test test test test test test test test junk
+      - CONTRACT_MOCK_URL=http://127.0.0.1:8010
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    volumes:
+      - validator-data:/app/data
+    network_mode: host # important for now, since NAT is not implemented yet.
+  
+  # I recommend to deploy the storage nodes to a Kubernetes cluster or something similar.
+  storage-node-1:
+    build:
+      dockerfile: ./node/Dockerfile
+    container_name: validator
+    environment:
+      - NODE_ID=0 # The node will work in storage mode if NODE_ID is set
+      - API_ADDR=0.0.0.0:8012
+      - PUBLIC_API_URL=http://127.0.0.1:8012
+      - EXTERNAL_IP=127.0.0.1
+      - P2P_PORT=30334
+      - BOOT_NODE=/ip4/other-node-ip/udp/30333/quic-v1/p2p/other-node-peer-id
+      - SEED_PHRASE=test test test test test test test test test test test junk
+      - CONTRACT_MOCK_URL=http://127.0.0.1:8010
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    volumes:
+      - node-1-data:/app/data
+    network_mode: host
+    # ...
+volumes:
+  validator-data:
+  contract-mock-data:
+  node-1-data:
+    
