@@ -15,6 +15,8 @@ use primitives::Hash;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::RwLock;
+use tracing::instrument;
+use tracing_subscriber::fmt::format::FmtSpan;
 
 const STATE_PATH: &str = "data/contract_mock_state.bin";
 
@@ -35,6 +37,7 @@ struct UploadClusterRes {
     cluster_id: String,
 }
 
+#[instrument(skip_all)]
 async fn reserve_cluster(
     state: axum::extract::State<Arc<RwLock<AppState>>>,
     form: Json<UploadClusterReq>,
@@ -68,7 +71,7 @@ async fn reserve_cluster(
     }))
 }
 
-#[axum::debug_handler]
+#[instrument(skip(state))]
 async fn get_cluster(
     state: axum::extract::State<Arc<RwLock<AppState>>>,
     Path(cluster_id): Path<String>,
@@ -86,6 +89,7 @@ async fn get_cluster(
     Ok(Json(cluster.clone()))
 }
 
+#[instrument(skip_all)]
 async fn info_handler(
     state: axum::extract::State<Arc<RwLock<AppState>>>,
 ) -> Json<serde_json::Value> {
@@ -113,7 +117,9 @@ pub async fn start_server(state: Arc<RwLock<AppState>>, addr: &str) -> color_eyr
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     color_eyre::install()?;
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::fmt()
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
 
     let state_res: Result<AppState> = std::fs::read(STATE_PATH)
         .map_err(|err| color_eyre::eyre::eyre!("Failed to read state from disk: {}", err))
@@ -135,10 +141,13 @@ async fn main() -> Result<()> {
         }
     };
 
+    let port = std::env::var("PORT").unwrap_or_else(|_| "80".to_string());
+
     let state = Arc::new(RwLock::new(state));
 
-    tracing::info!("Listening on 0.0.0.0:80");
-    start_server(state, "0.0.0.0:80").await?;
+    let addr = format!("0.0.0.0:{}", port);
+    tracing::info!("Listening on {}", addr);
+    start_server(state, &addr).await?;
 
     Ok(())
 }

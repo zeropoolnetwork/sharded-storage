@@ -17,19 +17,16 @@ use shards::compute_commitment;
 
 use crate::state::{AppState, Command, NodeState};
 
+#[tracing::instrument(skip(state), level = "info")]
 async fn download_cluster(
     state: axum::extract::State<Arc<AppState>>,
     Path(cluster_id): Path<String>,
 ) -> Result<Response, StatusCode> {
     let cluster_id: ClusterId = cluster_id.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let cluster_index = if let Some(index) = state
-        .cluster_id_cache
-        .read()
-        .await
-        .get(&cluster_id)
-    {
-        *index
+    let cached_cluster_index = state.cluster_id_cache.read().await.get(&cluster_id).cloned();
+    let cluster_index = if let Some(index) = cached_cluster_index {
+        index
     } else {
         let metadata = state
             .contract_client
@@ -37,7 +34,11 @@ async fn download_cluster(
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         let index = metadata.index as usize;
-        state.cluster_id_cache.write().await.insert(cluster_id.clone(), index);
+        state
+            .cluster_id_cache
+            .write()
+            .await
+            .insert(cluster_id.clone(), index);
         index
     };
 
@@ -57,6 +58,7 @@ async fn download_cluster(
     }
 }
 
+#[tracing::instrument(skip(state, multipart), level = "info")]
 async fn upload_cluster(
     state: axum::extract::State<Arc<AppState>>,
     Path(cluster_id): Path<String>,
@@ -110,6 +112,7 @@ async fn upload_cluster(
     Err(StatusCode::BAD_REQUEST)
 }
 
+#[tracing::instrument(skip(state), level = "info")]
 async fn get_info(state: axum::extract::State<Arc<AppState>>) -> Json<serde_json::Value> {
     // TODO: Get rid of locks in public API
     let peers = state.peers.read().await.clone();

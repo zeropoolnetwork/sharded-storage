@@ -8,14 +8,12 @@ name = "client"
 path = "src/lib.rs"
 
 [dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 color-eyre = { workspace = true }
-reqwest = { workspace = true, features = ["multipart", "json"] }
 clap = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
-serde = { workspace = true }
 bincode = { workspace = true }
-m31jubjub = { workspace = true }
 rand = { workspace = true }
 p3-matrix = { workspace = true }
 futures = { workspace = true }

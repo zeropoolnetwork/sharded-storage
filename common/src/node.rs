@@ -39,7 +39,7 @@ impl NodeClient {
             client: Client::new(),
         }
     }
-
+    #[tracing::instrument]
     pub async fn upload_cluster(&self, cluster_id: ClusterId, msg: UploadMessage) -> Result<()> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
         let data = bincode::serialize(&msg)?;
@@ -55,12 +55,11 @@ impl NodeClient {
         }
     }
 
+    #[tracing::instrument]
     pub async fn download_cluster(&self, cluster_id: ClusterId) -> Result<Vec<Val>> {
         let url = format!("{}/clusters/{}", self.base_url, cluster_id);
-        let t_start = std::time::Instant::now();
+
         let response = self.client.get(&url).send().await?;
-        let t_end = t_start.elapsed();
-        // println!("    Response time {t_end:?}");
 
         if response.status().is_success() {
             let data = response.bytes().await?.to_vec();
@@ -73,6 +72,7 @@ impl NodeClient {
         }
     }
 
+    #[tracing::instrument]
     pub async fn get_info(&self) -> Result<InfoResponse> {
         let url = format!("{}/info", self.base_url);
         let response = self.client.get(&url).send().await?;

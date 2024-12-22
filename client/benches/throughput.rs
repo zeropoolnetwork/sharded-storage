@@ -1,8 +1,6 @@
 use std::{collections::HashMap, future::Future};
 use std::hint::black_box;
 use std::sync::Arc;
-use futures::stream::FuturesUnordered;
-use futures::StreamExt;
 use client::{download_shards, recover_data};
 use common::{config::StorageConfig, node::Peer};
 use rand::prelude::SliceRandom;
@@ -13,6 +11,16 @@ use primitives::Val;
 const CLUSTER_IDS: &[&str] = &[
     "4a09785674d14344d92b1212b6e810369535ea1c",
     "dcfc37347dd5794515d7bb08ffcbca654f47d744",
+    "dbf5013b65b95c339ecd6563acd4b8016cd0d80f",
+    "486818732c691850ddcd5b241ca23319454fe575",
+    "4bb7275205086e01c4bdef60113abd1c6c07b666",
+    "d16bf0750fcda12088c406510f2d2f6c50d4097c",
+    "f4468b46760db96b07658c71338db961fb6de72f",
+    "6bfb0a0bfd71b41f71bd956b5e6af76c8ad5cd2b",
+    "4a7fb852bb3f120e676f906c7e208e43f6dc1003",
+    "ef4d97771d424720fb370d0e82f4537efb72c47a",
+    "b8186e0e1806966514ea8d45b3eb3e7681bdf974",
+    "c544b2178af4a4428cd1e12ca26d6428e3d24276",
 ];
 const CONCURRENCY: &[usize] = &[1, 2, 4, 8, 16];
 const NUM_REQUESTS: usize = 10;
@@ -28,17 +36,27 @@ async fn main() {
     
     for &concurrency in CONCURRENCY {
         let peers = peers.clone();
-        let mut tasks = FuturesUnordered::new();
+        let mut tasks = Vec::new();
         for _ in 0..concurrency {
             let peers = peers.clone();
             let mut rng = rand::thread_rng();
             let cluster_id: ClusterId = CLUSTER_IDS.choose(&mut rng).unwrap().parse().unwrap();
-            tasks.push(measure_throughput(move || test(peers.clone(), log_blowup_factor, cluster_id.clone()), NUM_REQUESTS));
+
+            tasks.push(std::thread::spawn(move || {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+
+                runtime.block_on(async move {
+                    measure_throughput(move || test(peers.clone(), log_blowup_factor, cluster_id.clone()), NUM_REQUESTS).await
+                })
+            }));
         }
 
         let mut results = Vec::new();
-        while let Some(result) = tasks.next().await {
-            results.push(result);
+        for handle in tasks {
+            results.push(handle.join().unwrap());
         }
 
         let (throughputs, avgs): (Vec<f32>, Vec<f32>) = results.into_iter().unzip();

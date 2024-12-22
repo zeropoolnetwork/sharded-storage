@@ -11,6 +11,7 @@ use libp2p::{futures::StreamExt, swarm::NetworkBehaviour};
 use m31jubjub::hdwallet::{priv_key, pub_key};
 use primitives::Val;
 use serde::Serialize;
+use tracing_subscriber::fmt::format::FmtSpan;
 use snapshot_db::db::{SnapshotDb, SnapshotDbConfig};
 
 use crate::state::{AppState, NodeId, NodeKind, NodeState};
@@ -50,7 +51,9 @@ struct Args {
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
     color_eyre::install()?;
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::fmt()
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
 
     let args = Args::parse();
 

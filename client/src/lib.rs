@@ -91,10 +91,7 @@ pub async fn download_shards(cluster_id: ClusterId, nodes: &HashMap<usize, Peer>
         let cluster_id = cluster_id.clone();
         tasks.push(async move {
             let client = NodeClient::new(&node.api_url);
-            let t_start = std::time::Instant::now();
             let data = client.download_cluster(cluster_id.clone()).await?;
-            let t_end = t_start.elapsed();
-            // println!("Downloaded shard in {t_end:?}");
             Ok::<_, Report>((node_id, data))
         })
     }

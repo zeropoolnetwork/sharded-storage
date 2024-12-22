@@ -12,6 +12,7 @@ use common::{
 use p3_matrix::dense::RowMajorMatrix;
 use primitives::Val;
 use rand::{Rng};
+use tracing_subscriber::fmt::format::FmtSpan;
 use shards::{
     compute_commitment, compute_subdomain_indexes,
     recover_original_data_from_subcoset,
@@ -52,6 +53,12 @@ enum Commands {
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
+
+    tracing_subscriber::fmt::fmt()
+        .with_span_events(FmtSpan::CLOSE)
+        .with_target(false)
+        .with_level(false)
+        .init();
 
     let cli = Cli::parse();
     let validator_client = NodeClient::new(&cli.validator_url);
