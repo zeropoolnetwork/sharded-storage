@@ -2,40 +2,48 @@
 
 A pre-alpha implementation of ZeroPool Sharded Storage.
 
-## Implementation
+## Running locally
+
+Run the following commands in separate terminals:
+
+`./scripts/run-contract-mock.sh`
+
+`./scripts/run-validator.sh`
+
+`./scripts/run-nodes.sh`
+
+then you can run the client scripts:
+
+`./scripts/upload.sh some_file.txt` will output the cluster ID
+
+`./scripts/download.sh <cluster_id> out.txt`
 
 ## Deploy
 
-Run the contract-mock and the validator first. Obtain the validator's multiaddress and use it as storage node's
-bootnode.
+Run the contract-mock and the validator first. Obtain the validator's multiaddr and use it as storage node's
+boot-node.
 
-Refer to `docker-compose.example.yml` for a specific example of how to deploy the services with Docker.
+Refer to `docker-compose.example.yml` for a specific example of how to deploy the components with Docker.
 
-## Usage Examples
+## Client examples
+
+The following examples show how to upload/download files from our testnet.
 
 ### Upload a file
 
 ```
-cargo run --release --bin client -- --validator-url=http://127.0.0.1:8011 --contract-url=http://127.0.0.1:8010 \
+cargo run --release --bin client -- --validator-url=http://45.131.67.89:8011 --contract-url=http://45.131.67.89:8010 \
   upload -f test.txt -m="test test test test test test test test test test test junk"
 ```
 
-This this output the cluster ID that can be used in the download command.
+This outputs the cluster ID that can be used in the download command.
 
 ### Download a file
 
 ```
-cargo run --release --bin client -- --validator-url=http://127.0.0.1:8011 --contract-url=http://127.0.0.1:8010 \
-  download -o out.txt -i 4a09785674d14344d92b1212b6e810369535ea1c
+cargo run --release --bin client -- --validator-url=http://45.131.67.89:8011 --contract-url=http://45.131.67.89:8010 \
+  download -o out.txt -i <cluster id>
 ```
-
-### Our testnet
-
-`--validator-url=http://45.131.67.89:8011 --contract-url=http://45.131.67.89:8010 `
-
-## Performance
-
-TODO
 
 ## Documentation
 
