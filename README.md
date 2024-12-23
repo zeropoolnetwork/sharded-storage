@@ -42,21 +42,17 @@ cargo run --release --bin client -- --validator-url=http://45.131.67.89:8011 --c
   download -o out.txt -i <cluster id>
 ```
 
-## Performance
+## Testnet performance
 
 We run a network of 16 nodes scattered across the globe. The nodes are running on 2-core VPS instances with 4GB of RAM
 and 100Mbps network speed.
 
-These are the results of the performance test (client/benches/throughput) run from a single machine with a ~300Mbps
-network:
-
-```
-concurrency: 1, total throughput: 0.68 MB/sec, avg request time: 1.46 sec
-concurrency: 4, total throughput: 4.03 MB/sec, avg request time: 1.04 sec
-concurrency: 8, total throughput: 6.62 MB/sec, avg request time: 1.23 sec
-concurrency: 16, total throughput: 9.49 MB/sec, avg request time: 1.73 sec
-concurrency: 32, total throughput: 10.22 MB/sec, avg request time: 3.18 sec
-```
+According to load testing done with locust, the throughput of each node is limited by its bandwidth (which is ~100Mbps).
+It takes 4 shards from 4 different nodes to reconstruct a cluster.
+Thus, the effective throughput of the testnet is about `node bandwidth * 4` in the worst case (implies that all clients
+land on the same 4 nodes, which is unrealistic), and `node bandwidth * 16`
+in the best case. The realistic scenario should be closer to the best case since the clients are distributed evenly in
+the current implementation.
 
 ## Documentation
 
