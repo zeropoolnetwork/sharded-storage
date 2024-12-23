@@ -47,7 +47,8 @@ cargo run --release --bin client -- --validator-url=http://45.131.67.89:8011 --c
 We run a network of 16 nodes scattered across the globe. The nodes are running on 2-core VPS instances with 4GB of RAM
 and 100Mbps network speed.
 
-According to load testing done with locust, the throughput of each node is limited by its bandwidth (which is ~100Mbps).
+According to load testing done with locust (reports are included in `locust/reports`), the throughput of each node is
+limited by its bandwidth (which is ~100Mbps).
 It takes 4 shards from 4 different nodes to reconstruct a cluster.
 Thus, the effective throughput of the testnet is about `node bandwidth * 4` in the worst case (implies that all clients
 land on the same 4 nodes, which is unrealistic), and `node bandwidth * 16`
