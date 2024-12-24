@@ -4430,6 +4430,7 @@ dependencies = [
  "libc-print",
  "p3-challenger",
  "p3-circle",
+ "p3-commit",
  "p3-field",
  "p3-matrix",
  "p3-maybe-rayon",
