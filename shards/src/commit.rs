@@ -35,9 +35,8 @@ impl OptimisticCorrectableCommitment {
         
         let metadata_hash: Hash = POSEIDON2_HASH.hash_iter(self.chi.as_base_slice().iter()
             .chain(openings_evaluations_hash.as_ref().iter()).cloned()).into();
-        
-        POSEIDON2_HASH.hash_iter(self.pcs_commitment_hash.as_ref().iter()
-        .chain(metadata_hash.as_ref().iter()).cloned()).into()
+
+        poseidon2_compress_hashes([openings_evaluations_hash.into(), metadata_hash.into()])
     }
 }
 

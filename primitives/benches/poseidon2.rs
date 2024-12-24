@@ -1,11 +1,13 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use primitives::{poseidon2_hash_iter, Val, Hash};
+use primitives::{poseidon2_compress_hashes, Val, Hash};
 use rand::{thread_rng, Rng};
 
 
 type HashVal = [Val; 8];
 fn bench_hash(left: HashVal, right: HashVal) -> Hash {
-    poseidon2_hash_iter(left.iter().chain(right.iter()).copied())
+
+    let hashes = [left, right];
+    poseidon2_compress_hashes(hashes)
 }
 
 

@@ -1,4 +1,3 @@
-
 use p3_mersenne_31::{DiffusionMatrixMersenne31, Mersenne31};
 use p3_symmetric::{PaddingFreeSponge, TruncatedPermutation};
 use p3_merkle_tree::FieldMerkleTreeMmcs;
@@ -6,19 +5,21 @@ use p3_merkle_tree::FieldMerkleTreeMmcs;
 use p3_poseidon2::{Poseidon2, Poseidon2ExternalMatrixGeneral};
 use p3_commit::ExtensionMmcs;
 use p3_field::Field;
-use p3_field::extension::BinomialExtensionField;
+use p3_field::extension::{BinomialExtensionField, Complex};
 use p3_challenger::DuplexChallenger;
 
 use p3_uni_stark::StarkConfig;
 use p3_circle::CirclePcs;
 use p3_fri::FriConfig;
 use lazy_static::lazy_static;
-use p3_symmetric::CryptographicHasher;
+use p3_symmetric::{CryptographicHasher, PseudoCompressionFunction};
 use core::marker::PhantomData;
 
 use crate::utils::StreamCipher;
 
 pub type Val = Mersenne31;
+pub type QuadVal = BinomialExtensionField<Complex<Val>, 2>;
+
 
 pub type Poseidon2Perm = Poseidon2<Val, Poseidon2ExternalMatrixGeneral, DiffusionMatrixMersenne31, 16, 5>;
 pub type Poseidon2Hash = PaddingFreeSponge<Poseidon2Perm, 16, 8, 8>;
@@ -32,10 +33,16 @@ pub type Poseidon2Mmcs = FieldMerkleTreeMmcs<
 >;
 
 pub type Challenge = BinomialExtensionField<Val, 3>;
+
+
 pub type Poseidon2ChallengeMmcs = ExtensionMmcs<Val, Challenge, Poseidon2Mmcs>;
+
 pub type Poseidon2Challenger = DuplexChallenger<Val, Poseidon2Perm, 16, 8>;
 
 pub type Poseidon2Pcs = CirclePcs<Val, Poseidon2Mmcs, Poseidon2ChallengeMmcs>;
+
+pub type Poseidon2PcsProverData = <Poseidon2Pcs as p3_commit::Pcs<Challenge, Poseidon2Challenger>>::ProverData;
+
 pub type Poseidon2StarkConfig = StarkConfig<Poseidon2Pcs, Challenge, Poseidon2Challenger>;
 
 pub type Hash = p3_symmetric::Hash<Val, Val, 8>;
@@ -50,6 +57,7 @@ lazy_static!{
     pub static ref POSEIDON2_COMPRESS: Poseidon2Compress = poseidon2_compress();
     pub static ref POSEIDON2_MMCS: Poseidon2Mmcs = poseidon2_mmcs();
     pub static ref POSEIDON2_CHALLENGE_MMCS: Poseidon2ChallengeMmcs = poseidon2_challenge_mmcs();
+    pub static ref POSEIDON2_PCS: Poseidon2Pcs = pcs_config();
 }
 
 
@@ -114,7 +122,22 @@ pub fn poseidon2_hash_slice(slice:impl AsRef<[Val]>) -> Hash {
     POSEIDON2_HASH.hash_slice(slice.as_ref()).into()
 }
 
-pub fn poseidon2_hash_item(item:Val) -> Hash {
-    POSEIDON2_HASH.hash_item(item).into()
+
+pub fn poseidon2_compress_hashes(val:[[Val;8]; 2]) -> Hash {
+    POSEIDON2_COMPRESS.compress(val).into()
+}
+
+
+pub fn array_to_quadval(val: [Val; 4]) -> QuadVal {
+    QuadVal::from_raw([
+        Complex::new(val[0], val[1]),
+        Complex::new(val[2], val[3]),
+    ])
+}
+
+pub fn quadval_to_array(quad: QuadVal) -> [Val;4] {
+    let a1 = quad.to_array();
+
+    [a1[0].real(), a1[0].imag(), a1[1].real(), a1[1].imag()]
 }
 
