@@ -2722,18 +2722,20 @@ dependencies = [
 [[package]]
 name = "m31jubjub"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/m31jubjub#958bb4b9a63af2afde1b9e7facc42a4bbc2453bc"
 dependencies = [
  "ark-ff",
  "base58",
  "bincode",
  "bip39",
  "hmac",
+ "libc-print",
  "num-bigint",
  "p3-field",
  "p3-mersenne-31",
  "p3-poseidon2",
  "p3-symmetric",
+ "rand",
+ "serde",
  "sha2",
  "sha3",
 ]
@@ -3185,7 +3187,7 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 [[package]]
 name = "p3-air"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -3194,7 +3196,7 @@ dependencies = [
 [[package]]
 name = "p3-challenger"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "p3-field",
  "p3-maybe-rayon",
@@ -3206,7 +3208,7 @@ dependencies = [
 [[package]]
 name = "p3-circle"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-challenger",
@@ -3224,7 +3226,7 @@ dependencies = [
 [[package]]
 name = "p3-commit"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-challenger",
@@ -3237,7 +3239,7 @@ dependencies = [
 [[package]]
 name = "p3-dft"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-field",
@@ -3250,7 +3252,7 @@ dependencies = [
 [[package]]
 name = "p3-field"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "num-bigint",
@@ -3265,7 +3267,7 @@ dependencies = [
 [[package]]
 name = "p3-fri"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-challenger",
@@ -3283,7 +3285,7 @@ dependencies = [
 [[package]]
 name = "p3-interpolation"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -3293,7 +3295,7 @@ dependencies = [
 [[package]]
 name = "p3-matrix"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-field",
@@ -3308,7 +3310,7 @@ dependencies = [
 [[package]]
 name = "p3-maybe-rayon"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "rayon",
 ]
@@ -3316,7 +3318,7 @@ dependencies = [
 [[package]]
 name = "p3-mds"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.12.1",
  "p3-dft",
@@ -3330,7 +3332,7 @@ dependencies = [
 [[package]]
 name = "p3-merkle-tree"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-commit",
@@ -3346,7 +3348,7 @@ dependencies = [
 [[package]]
 name = "p3-mersenne-31"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "num-bigint",
@@ -3365,7 +3367,7 @@ dependencies = [
 [[package]]
 name = "p3-poseidon2"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "gcd",
  "p3-field",
@@ -3377,7 +3379,7 @@ dependencies = [
 [[package]]
 name = "p3-symmetric"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-field",
@@ -3387,7 +3389,7 @@ dependencies = [
 [[package]]
 name = "p3-uni-stark"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "itertools 0.13.0",
  "p3-air",
@@ -3405,7 +3407,7 @@ dependencies = [
 [[package]]
 name = "p3-util"
 version = "0.1.0"
-source = "git+https://github.com/zeropoolnetwork/Plonky3?branch=fork%2Ffeature%2Fcfft-symmetric-compatibility#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
+source = "git+https://github.com/zeropoolnetwork/Plonky3?rev=5b53c08297c1589e1e9d16c9e4a6c60cce0e573a#5b53c08297c1589e1e9d16c9e4a6c60cce0e573a"
 dependencies = [
  "serde",
 ]

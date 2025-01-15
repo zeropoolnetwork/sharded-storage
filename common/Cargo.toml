@@ -10,7 +10,6 @@ p3-symmetric = { workspace = true }
 p3-field = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-m31jubjub = { workspace = true }
 reqwest = { workspace = true, features = ["multipart", "json"] }
 color-eyre = { workspace = true }
 bincode = { workspace = true }
@@ -22,3 +21,4 @@ ark-serialize = "0.4.2"
 serde_with = "3.11.0"
 
 primitives = { path = "../primitives" }
+m31jubjub = { path = "../m31jubjub" }
